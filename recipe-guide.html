@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Vibe Coding Workshop: Build “What’s for Dinner?” AI App on OCI (Prompt‑Driven)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root{
+      /* Refined light palette for professionalism */
+      --bg: #f9fafb;
+      --bg-soft: #ffffff;
+      --surface: #ffffff;
+      --text: #111827;          /* gray-900 */
+      --muted: #4b5563;         /* gray-600 */
+      --primary: #3b82f6;       /* blue-500 */
+      --primary-600: #1d4ed8;   /* blue-700 */
+      --accent: #0d9488;        /* teal-600 */
+      --ring: #d1d5db;          /* gray-300 */
+      --warn-bg:#fef3c7;        /* amber-100 */
+      --warn-border:#f59e0b;    /* amber-500 */
+      --tip-bg:#d1fae5;         /* emerald-100 */
+      --tip-border:#059669;     /* emerald-600 */
+      --prompt-bg:#eff6ff;      /* blue-50 */
+      --prompt-left:#3b82f6;    /* blue-500 */
+      --code-bg:#f9fafb;        /* gray-50 */
+      --code-border:#e5e7eb;    /* gray-200 */
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --radius: 8px;
+    }
+    /* Page base */
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Inter",-apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      line-height: 1.65;
+      background: var(--bg);
+    }
+    /* Shell container */
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 32px 80px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 32px;
+    }
+    @media (max-width:1100px){ .wrap{ grid-template-columns: 1fr; } }
+    /* Sidebar TOC */
+    .toc {
+      position: sticky; top: 20px;
+      height: fit-content;
+      background: #ffffff;
+      border: 1px solid var(--ring);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .toc h3 { font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+    .toc a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 15px;
+      margin: 2px 0;
+      transition: background .2s, color .2s;
+    }
+    .toc a i { font-size: 14px; color: inherit; opacity: 0.7; }
+    .toc a.active, .toc a:hover { background: #eff6ff; color: var(--primary); }
+    .toc a.active i, .toc a:hover i { opacity: 1; }
+    /* Main surface */
+    .surface {
+      background: #ffffff;
+      border: 1px solid var(--ring);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      padding: 48px 32px;
+      color: white;
+      border-bottom: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 90% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+      opacity: 0.8;
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      font-weight: 700;
+      position: relative;
+      z-index: 1;
+    }
+    .header .muted {
+      color: rgba(255,255,255,0.9);
+      font-size: 18px;
+      position: relative;
+      z-index: 1;
+    }
+    /* Header banner */
+    /* Content body */
+    .content { padding: 32px 40px 48px; }
+    .content h2 {
+      margin-top: 48px; font-size: 24px;
+      display: flex; align-items: center; gap: 12px;
+      color: var(--text);
+      font-weight: 600;
+      position: relative;
+    }
+    .content h2::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 64px;
+      height: 3px;
+      background: linear-gradient(to right, var(--primary), transparent);
+      border-radius: 2px;
+    }
+    .content h2::before{
+      content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 999px;
+      background: linear-gradient(180deg, var(--accent), var(--primary));
+      box-shadow: 0 0 0 6px rgba(37,99,235,.12);
+    }
+    .content h3 { margin-top: 32px; font-size: 20px; font-weight: 600; color: var(--text); }
+    /* Cards and callouts */
+    .box{
+      background: #ffffff;
+      border: 1px solid var(--ring);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 16px 0;
+      box-shadow: var(--shadow);
+    }
+    .warn{
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn-border);
+      color: #854d0e;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .warn strong { font-weight: 600; }
+    .tip{
+      background: var(--tip-bg);
+      border-left: 4px solid var(--tip-border);
+      color: #065f46;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .tip strong { font-weight: 600; }
+    .prompt{
+      position: relative;
+      background: var(--prompt-bg);
+      border-left: 4px solid var(--prompt-left);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin: 16px 0;
+      box-shadow: var(--shadow);
+    }
+    .prompt ul { margin: 10px 0 10px 1.25rem; padding-left: 1rem; list-style: disc; }
+    .prompt li { margin: 4px 0; }
+    /* Collapsibles */
+    details.collapsible{
+      background: #ffffff;
+      border: 1px solid var(--ring);
+      border-radius: var(--radius);
+      padding: 0;
+      margin: 16px 0;
+      transition: box-shadow .2s;
+    }
+    details.collapsible:hover { box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    details.collapsible > summary{
+      cursor: pointer; font-size: 18px; font-weight: 600; list-style: none; outline: none;
+      padding: 16px 20px; border-radius: var(--radius);
+      transition: background .2s;
+    }
+    details.collapsible[open] > summary{ background: #f9fafb; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 1px solid var(--ring); }
+    details.collapsible > summary::-webkit-details-marker{ display:none; }
+    /* Code/CLI */
+    .cli, pre{
+      background: #020617; /* very dark for max contrast */
+      color: #ffffff; /* pure white text */
+      border: 1px solid #475569;
+      position: relative;
+      border-radius: var(--radius);
+      padding: 16px;
+      line-height: 1.55;
+      font-size: 14px;
+      overflow-x: auto;
+      font-family: 'SF Mono', monospace;
+    }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.95em; }
+    /* Buttons */
+    .copy-btn{
+      position: absolute; top: 12px; right: 12px;
+      background: #f3f4f6; color: #374151;
+      border: none;
+      border-radius: 6px; padding: 6px 12px; font-size: 13px;
+      cursor: pointer; transition: background .2s, transform .1s;
+    }
+    .copy-btn:hover{ background: #e5e7eb; }
+    .copy-btn:active{ transform: translateY(1px); }
+    /* Links */
+    a { color: var(--primary); text-decoration: none; transition: color .2s; }
+    a:hover { color: var(--primary-600); text-decoration: underline; }
+    /* Phase badge */
+    .phase{
+      border-left: 4px solid var(--primary);
+      padding-left: 16px; margin: 24px 0;
+    }
+    /* Mobile */
+    @media (max-width: 768px){
+      .wrap { padding: 32px 20px 48px; grid-template-columns: 1fr; }
+      .content { padding: 24px 24px 32px; }
+      .header { padding: 32px 24px; }
+      .header h1 { font-size: 28px; }
+      .toc { position: relative; margin-bottom: 24px; }
+    }
+  /* --- YouTube Presenter + Dark Theme Overrides --- */
+  .content { max-width: 980px; margin: 0 auto; }
+
+  body.theme-dark {
+    --bg: #0b1220;
+    --bg-soft: #0f172a;
+    --surface: #0f172a;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --primary: #38bdf8;
+    --primary-600: #0ea5e9;
+    --accent: #22d3ee;
+    --ring: #1f2937;
+    --warn-bg: rgba(245, 158, 11, 0.08);
+    --warn-border: #f59e0b;
+    --tip-bg: rgba(16, 185, 129, 0.08);
+    --tip-border: #34d399;
+    --prompt-bg: rgba(14, 165, 233, 0.08);
+    --prompt-left: #38bdf8;
+    --code-bg: #0a0f1a;
+    --code-border: #1f2937;
+  }
+  body.theme-dark {
+    background: var(--bg);
+    color: var(--text);
+  }
+  body.theme-dark .surface,
+  body.theme-dark .box,
+  body.theme-dark details.collapsible,
+  body.theme-dark .toc {
+    background: var(--surface);
+    border-color: var(--ring);
+    color: var(--text);
+  }
+  body.theme-dark .header {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--accent) 100%);
+  }
+  body.theme-dark a { color: var(--primary); }
+  body.theme-dark a:hover { color: var(--primary-600); }
+  body.theme-dark .warn { background: var(--warn-bg); }
+  body.theme-dark .tip { background: var(--tip-bg); }
+  body.theme-dark .prompt { background: var(--prompt-bg); }
+
+  /* Presenter mode (YouTube): larger type, hide sidebar */
+  body.present .wrap { grid-template-columns: 1fr; }
+  body.present .toc { display: none !important; }
+  body.present .content { font-size: 20px; line-height: 1.7; }
+  body.present .content h1 { font-size: 48px; }
+  body.present .content h2 { font-size: 34px; }
+  body.present .content h3 { font-size: 26px; }
+  body.present .cli, body.present pre { font-size: 18px; padding: 20px; }
+
+  /* Floating Presenter Toolbar */
+  #presenter-toolbar {
+    position: fixed; z-index: 9999; top: 12px; right: 12px;
+    display: flex; gap: 8px; background: rgba(15,23,42,.85);
+    border: 1px solid var(--ring); border-radius: 999px; padding: 8px 10px;
+    backdrop-filter: blur(6px);
+  }
+  #presenter-toolbar button {
+    appearance: none; border: 1px solid var(--ring);
+    background: transparent; color: #e5e7eb; cursor: pointer;
+    border-radius: 999px; padding: 6px 12px; font-size: 14px;
+  }
+  #presenter-toolbar button:hover { background: rgba(59,130,246,.15); }
+
+  @media (max-width: 768px){
+    #presenter-toolbar { left: 12px; right: 12px; justify-content: center; }
+  }
+  </style>
+</head>
+<body>
+  <div id="presenter-toolbar" aria-label="Presenter controls">
+    <button id="toggle-present" title="Toggle Presenter Mode (P)">Presenter</button>
+  </div>
+  <div class="wrap">
+    <aside class="toc">
+      <h3>On this page</h3>
+      <nav>
+        <ul>
+          <li><a href="#pre-requisites"><i class="fas fa-check-circle"></i> Pre-requisites</a></li>
+          <li><a href="#one-time-setup"><i class="fas fa-cog"></i> 0) One-Time Setup</a></li>
+          <li><a href="#phase-1"><i class="fas fa-server"></i> Phase 1 — Build a FastAPI AI application</a></li>
+          <li><a href="#phase-2"><i class="fas fa-plus-circle"></i> Phase 2 — Add features</a></li>
+          <li><a href="#phase-3"><i class="fas fa-list"></i> Phase 3 — Extract ingredients</a></li>
+          <li><a href="#phase-4"><i class="fas fa-shopping-cart"></i> Phase 4 — Add Woolworths products</a></li>
+          <li><a href="#phase-5"><i class="fas fa-desktop"></i> Phase 5 — Build the Streamlit web app</a></li>
+          <li><a href="#phase-6"><i class="fas fa-sync-alt"></i> Phase 6 — Run as systemd services</a></li>
+          <li><a href="#phase-7"><i class="fas fa-plug"></i> Phase 7 — Create a Local MCP Server for Recipe API</a></li>
+          <li><a href="#phase-8"><i class="fas fa-tools"></i> Phase 8 — [Optional] Advanced Integrations</a></li>
+          <li><a href="#phase-9"><i class="fas fa-check-double"></i> Phase 9 — End-to-end validation</a></li>
+          <li><a href="#troubleshooting"><i class="fas fa-tools"></i> Troubleshooting Prompts</a></li>
+          <li><a href="#appendix"><i class="fas fa-book"></i> Appendix</a></li>
+        </ul>
+      </nav>
+    </aside>
+    <div class="surface">
+      <header class="header">
+        <h1>Vibe Coding Workshop: Build “What’s for Dinner?” AI App on OCI</h1>
+        <p class="muted">Learn prompt-driven development with Oracle Code Assist and Cline to build an AI recipe app on OCI.</p>
+      </header>
+      <div class="content">
+        <div class="box">
+          <strong>What we’ll build</strong>
+          <p>Welcome developers! In this hands‑on workshop, you’ll practice vibe coding — prompt‑driven development with Oracle Code Assist and Cline — by building a small, real‑world AI app that answers “What’s for dinner?”. You’ll drive the build with short, natural‑language prompts while the tools handle scaffolding, coding, and wiring.</p>
+          <p>We will build phase-by-phase:</p>
+          <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <h4>Workshop Phases Overview</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 1: GET Endpoint</div>
+              <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 2: POST & Health</div>
+              <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 3: Ingredients Parse</div>
+              <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 4: Woolworths + LLM</div>
+              <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 5: Streamlit UI</div>
+              <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 6: Systemd Services</div>
+              <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 7: MCP Server</div>
+              <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 8: Optional Integrations</div>
+              <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 9: Validation</div>
+            </div>
+            <p class="muted" style="margin-top: 12px; font-size: 14px;">Blue: Core build phases | Green: Completion & Deployment</p>
+          </div>
+          <p>Throughout, you’ll learn how to structure effective prompts, keep state in a Memory Bank, use a workshop-config.yaml for environment‑specific values, and validate each phase with curl or the UI.</p>
+        </div>
+
+
+        <p class="muted">Participants paste short, natural‑language prompts only. All technical details (auth, endpoints, images, infra, logging, models, structure) are driven by a provided Workshop Config and Memory Bank. You’ll see the product evolve phase‑by‑phase, validating with curl along the way.</p>
+
+        <div class="box">
+          <strong>How this workshop works</strong>
+          <ul>
+            <li>Paste the prompt for each phase into Cline.</li>
+            <li>Cline will read the Memory Bank and workshop-config.yaml and <em>enforce</em> the standards in <code>.clinerules/</code>.</li>
+            <li>Do not run shell scripts; this workshop is prompt-only and config/memory-bank driven.</li>
+            <li>After each phase, verify with the provided curl commands or simple UI checks.</li>
+          </ul>
+        </div>
+
+        <h2 id="architecture">Workshop Architecture</h2>
+        <p class="muted">High-level view of the components and how they connect across the workshop phases.</p>
+        <div class="box" style="text-align:center">
+          <div><strong>Conceptual Architecture</strong></div>
+          <img src="https://objectstorage.ap-sydney-1.oraclecloud.com/p/jAMurpHsj5xKwCTZCXFabuEKgn6iDrxu968pD_mZWjyRMUpLjwQbgn0aOTLJVx59/n/idjhqglymefr/b/documents/o/workshop.png" alt="Conceptual Architecture Diagram" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px" />
+          <div class="muted">Conceptual Architecture • Image source: OCI Object Storage (PAR)</div>
+        </div>
+        <div class="box" style="text-align:center">
+          <div><strong>Physical Architecture</strong></div>
+          <img src="https://objectstorage.ap-sydney-1.oraclecloud.com/p/VRhoRiLjhP0iq3M2lh6Ip6Q3CIZ07QIzlHL8X7dXQfCO7rEdCb0NSMIC9WH4kkZY/n/idjhqglymefr/b/documents/o/vibe-workshop-diag-2.png" alt="Physical Architecture Diagram" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px" />
+          <div class="muted">Physical Architecture • Image source: OCI Object Storage (PAR)</div>
+        </div>
+
+        <h2>Table of Contents</h2>
+        <nav class="toc">
+          <h3>Jump to Section</h3>
+          <ul>
+            <li><a href="#pre-requisites"><i class="fas fa-check-circle"></i> Pre-requisites</a></li>
+            <li><a href="#one-time-setup"><i class="fas fa-cog"></i> 0) One-Time Setup</a></li>
+            <li><a href="#phase-1"><i class="fas fa-server"></i> Phase 1 — Build a FastAPI AI application</a></li>
+            <li><a href="#phase-2"><i class="fas fa-plus-circle"></i> Phase 2 — Add features</a></li>
+            <li><a href="#phase-3"><i class="fas fa-list"></i> Phase 3 — Extract ingredients</a></li>
+            <li><a href="#phase-4"><i class="fas fa-shopping-cart"></i> Phase 4 — Add Woolworths products</a></li>
+            <li><a href="#phase-5"><i class="fas fa-desktop"></i> Phase 5 — Build the Streamlit web app</a></li>
+            <li><a href="#phase-6"><i class="fas fa-sync-alt"></i> Phase 6 — Run as systemd services</a></li>
+            <li><a href="#phase-7"><i class="fas fa-plug"></i> Phase 7 — Create a Local MCP Server for Recipe API</a></li>
+            <li><a href="#phase-8"><i class="fas fa-tools"></i> Phase 8 — [Optional] Advanced Integrations: Containers, CI, API Gateway, and Load Balancer</a></li>
+            <li><a href="#phase-9"><i class="fas fa-check-double"></i> Phase 9 — End-to-end validation</a></li>
+          </ul>
+        </nav>
+        <script>
+          // Smooth anchor scrolling for in-page links
+          document.addEventListener('click', (e) => {
+            const a = e.target.closest('a[href^="#"]');
+            if (!a) return;
+            const id = a.getAttribute('href').slice(1);
+            const el = document.getElementById(id);
+            if (el) {
+              e.preventDefault();
+              el.scrollIntoView({ behavior:'smooth', block:'start' });
+              try { history.pushState(null, "", `#${id}`); } catch (_) {}
+            }
+          });
+
+          // Build a sticky TOC in sidebar after full DOM is parsed
+          document.addEventListener('DOMContentLoaded', () => {
+            // If wrapper structure is missing, create it matching original layout (sidebar left)
+            const wrapper = document.querySelector('.wrap');
+            if (!wrapper) {
+              const w = document.createElement('div');
+              w.className = 'wrap';
+              const bodyChildren = Array.from(document.body.children);
+              // Create sidebar
+              const aside = document.createElement('aside');
+              aside.className = 'toc';
+              aside.innerHTML = '<h3>On this page</h3><nav id="toc-list"></nav>';
+              // Create surface container
+              const surf = document.createElement('div');
+              surf.className = 'surface';
+              const banner = document.createElement('div'); banner.className = 'banner';
+              const content = document.createElement('div'); content.className = 'content';
+              // Move original body into content
+              bodyChildren.forEach(ch => content.appendChild(ch));
+              surf.appendChild(banner); surf.appendChild(content);
+              w.appendChild(aside); w.appendChild(surf);
+              document.body.appendChild(w);
+            }
+
+            // Populate TOC
+            const nav = document.getElementById('toc-list');
+            if (!nav) return;
+            const h2s = Array.from(document.querySelectorAll('h2[id]'));
+            const iconFor = (id) => {
+              switch (id) {
+                case 'pre-requisites': return 'fas fa-check-circle';
+                case 'one-time-setup': return 'fas fa-cog';
+                case 'phase-1': return 'fas fa-server';
+                case 'phase-2': return 'fas fa-plus-circle';
+                case 'phase-3': return 'fas fa-list';
+                case 'phase-4': return 'fas fa-shopping-cart';
+                case 'phase-5': return 'fas fa-desktop';
+                case 'phase-6': return 'fas fa-sync-alt';
+                case 'phase-7': return 'fas fa-plug';
+                case 'phase-8': return 'fas fa-tools';
+                case 'phase-9': return 'fas fa-check-double';
+                case 'troubleshooting': return 'fas fa-tools';
+                case 'appendix': return 'fas fa-book';
+                case 'oci-iam-policies': return 'fas fa-shield-alt';
+                default: return 'fas fa-file-alt';
+              }
+            };
+            nav.innerHTML = h2s.map(h => `<a href="#${h.id}"><i class="${iconFor(h.id)}"></i> ${h.textContent}</a>`).join('');
+
+            // Scroll spy
+            const links = Array.from(nav.querySelectorAll('a'));
+            if (h2s.length && links.length) {
+              const ro = new IntersectionObserver((ents)=>{
+                ents.forEach(ent=>{
+                  if (ent.isIntersecting){
+                    links.forEach(a=>a.classList.toggle('active', a.getAttribute('href') === `#${ent.target.id}`));
+                  }
+                });
+              }, { rootMargin: '-40% 0px -55% 0px', threshold: 0.01 });
+              h2s.forEach(h=>ro.observe(h));
+            }
+          });
+
+          // Add copy buttons to CLI blocks after DOM is ready
+          document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('pre.cli').forEach((pre) => {
+              const btn = document.createElement('button');
+              btn.className = 'copy-btn';
+              btn.type = 'button';
+              btn.textContent = 'Copy';
+              btn.setAttribute('aria-label', 'Copy command');
+              btn.addEventListener('click', async () => {
+                try {
+                  await navigator.clipboard.writeText(pre.innerText.trim());
+                  const prev = btn.textContent;
+                  btn.textContent = 'Copied!';
+                  setTimeout(() => (btn.textContent = prev), 1200);
+                } catch {
+                  const prev = btn.textContent;
+                  btn.textContent = 'Copy failed';
+                  setTimeout(() => (btn.textContent = prev), 1200);
+                }
+              });
+              pre.appendChild(btn);
+            });
+          });
+        </script>
+
+        <div id="pre-requisites">
+          <h2>Pre‑requisites (Complete before the workshop)</h2>
+        <div class="warn">To ensure a smooth, hands-on session, please complete the following pre‑requisites before the workshop. I will share the project details in a separate email.</div>
+
+        <h3>Step 1/7: Install VS Code and Remote – SSH</h3>
+        <ul>
+          <li>Install VS Code: <a href="https://code.visualstudio.com/" target="_blank" rel="noopener">https://code.visualstudio.com/</a></li>
+          <li>In VS Code, install the “Remote – SSH” extension (by Microsoft)</li>
+          <li>Optional reference (not required): <a href="https://medium.com/@jeromedecinco/remote-development-using-ssh-with-visual-studio-code-254ee47842b8" target="_blank" rel="noopener">Remote development using SSH with VS Code</a></li>
+        </ul>
+
+        <details class="collapsible" open><summary><strong>Step 2/7: Prepare your Oracle Linux OCI instance</strong></summary>
+        <ul>
+          <li>Deploy Oracle Linux OCI instance</li>
+          <li>Log in via SSH as <code>opc</code></li>
+          <li>Ensure core tools are installed:</li>
+        </ul>
+        <pre class="cli">sudo dnf install -y git python3 python3-pip
+python3 --version
+git --version</pre>
+        <ul>
+          <li>Install container tools on Oracle Linux 9 machine:</li>
+        </ul>
+        <pre class="cli">sudo dnf install -y container-tools</pre>
+        <ul>
+          <li>Optional: Install OCI CLI if you’ll manage OCI from the VM:</li>
+        </ul>
+        <pre class="cli">sudo dnf -y install oraclelinux-developer-release-el9
+sudo dnf install python39-oci-cli
+oci --version</pre>
+        </details>
+        <h3>Step 3/7: Configure SSH on your laptop</h3>
+        <ul>
+          <li>Ensure your OCI SSH private key is in <code>~/.oci/</code> (mac/Linux) or <code>%USERPROFILE%\.oci\</code> (Windows)</li>
+          <li>Restrict key permissions (mac/Linux):</li>
+        </ul>
+        <pre class="cli">chmod 600 ~/.oci/*.pem ~/.oci/*.key</pre>
+        <ul>
+          <li>Create or update your SSH config at <code>~/.ssh/config</code> (mac/Linux) or <code>%USERPROFILE%\.ssh\config</code> (Windows). Example (edit for your details; do not copy verbatim):</li>
+        </ul>
+        <pre class="cli">Host OCI-Devops
+    HostName <your-oci-public-ip>
+    User opc
+    IdentityFile ~/.oci/<your_private_key>.key
+    IdentitiesOnly yes
+    ServerAliveInterval 60
+    ServerAliveCountMax 3</pre>
+        <ul>
+          <li>Test from a local terminal:</li>
+        </ul>
+        <pre class="cli">ssh OCI-Devops</pre>
+        <p class="muted">Since it starts with the Microsoft GitHub login link, you can do Ctrl+C. You should connect without a password prompt. If it fails, verify IP, key path, and permissions.</p>
+
+        <details class="collapsible" open><summary><strong>Step 4/7: Configure OCI credentials on the OCI instance</strong></summary>
+        <div class="box">
+          <strong>Choose one authentication option:</strong>
+          <ul>
+            <li><strong>Option A — Instance Principals (preferred):</strong> Configure Instance Principals for your environment. Create a Dynamic Group and attach the minimal policies (Generative AI family, Container Instances, API Gateway family, Load Balancers, Virtual Network family, and OCIR repos) as shown in the Appendix: <a href="#oci-iam-policies">OCI IAM Policies</a>.</li>
+            <li><strong>Option B — OCI Config file (~/.oci/config):</strong> Use this fallback if Instance Principals are not available in your environment. Follow the steps below.</li>
+          </ul>
+        </div>
+        <ul>
+          <li>Create <code>~/.oci/</code> and place your API key pair there (private key chmod 600)</li>
+          <li>Create <code>~/.oci/config</code> (example – replace placeholders with your real OCIDs/region):</li>
+        </ul>
+        <pre class="cli">[DEFAULT]
+user=ocid1.user.oc1..xxxxxxxx
+fingerprint=xx:xx:xx:xx:xx
+tenancy=ocid1.tenancy.oc1..xxxxxxxx
+compartment_id=ocid1.compartment.oc1..xxxxxxxx
+region=ap-sydney-1
+key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
+        <ul>
+          <li>Validate (optional):</li>
+        </ul>
+        <pre class="cli">oci iam compartment get --compartment-id ocid1.compartment.oc1..aaaaaaaaf5srevccb2moc76cxaanrkel6m7dxe3z4o5yvpeql2jmxqzsqkaq</pre>
+
+        </details>
+        <h3>Step 5/7: Connect with VS Code Remote – SSH</h3>
+        <ul>
+          <li>In VS Code: Command Palette > “Remote-SSH: Connect to Host…” > select <code>OCI-Devops</code></li>
+          <li>Open a folder on the remote machine (e.g., <code>/home/opc/workshop/</code>)</li>
+          <li>VS Code should auto-install the server on first connect</li>
+        </ul>
+
+        <h3>Step 6/7: Oracle Code Assist access and installation</h3>
+        <ul>
+          <li>Install via VSIX in your Remote – SSH session: Command Palette (Ctrl/Cmd+Shift+P) → “Extensions: Install from VSIX…”.</li>
+          <li>Browse to <code>/home/opc/octo-0.0.25.vsix</code> on the remote VM and install. Reload VS Code when prompted.</li>
+          <li>Verify the extension is installed in the remote session (Extensions panel).</li>
+        </ul>
+
+        <h3>Step 7/7: Install and configure Cline in VS Code</h3>
+        <ul>
+          <li>In VS Code (Remote – SSH session), open Extensions (Ctrl/Cmd+Shift+X) and search for “Cline”. Install the “Cline” extension from the Marketplace.</li>
+          <li>On first run, when prompted to choose a provider, select “Oracle Code Assist” as the API provider.</li>
+          <li>Sign in using your existing Oracle customer account (non‑employee) and complete the sign‑in flow.</li>
+        </ul>
+
+        <h3>Verification checklist (please complete before the workshop)</h3>
+        <ul>
+          <li><label><input type="checkbox" /> I can SSH into the OCI instance without errors using: <code>ssh OCI-Devops</code></label></li>
+          <li><label><input type="checkbox" /> I can open the OCI host in VS Code via Remote – SSH and see a remote terminal</label></li>
+          <li><label><input type="checkbox" /> Python 3 and Git are installed on the OCI host</label></li>
+          <li><label><input type="checkbox" /> Oracle Code Assist is installed in VS Code (remote session) and I have entitlements</label></li>
+          <li><label><input type="checkbox" /> Cline is installed/configured per guidance and approved for use</label></li>
+        </ul>
+        <div class="tip">
+          <i class="fas fa-lightbulb" style="margin-right: 8px; color: var(--tip-border);"></i> <strong>Common Pitfalls:</strong> If SSH fails, double-check key permissions (chmod 600) and config file syntax. For Oracle Code Assist, ensure entitlements are approved early—ping the instructor if delayed. If you're stuck on any pre-requisite, raise your hand—we'll cover common issues.
+        </div>
+
+        </div>
+        <h2 id="one-time-setup">0) One‑Time Setup (Provided by Instructor)</h2>
+        <p>This setup creates the foundation for vibe coding: a Memory Bank for context and a config file for your OCI environment.</p>
+        <p>Use the setup script to scaffold the Memory Bank and workshop-config.yaml. No manual file placement is required.</p>
+        <p class="muted">The setup also prepares a hidden “house rules” folder (<code>.clinerules/</code>) so Cline can quietly keep things consistent during the workshop. You don’t need to learn these rules—just keep the Memory Bank and .clinerules folders in place.</p>
+        <ul>
+          <li><strong>memory-bank/</strong>: your project’s simple guide for Cline (what we’re building, why, and the current focus)</li>
+          <li><strong>.clinerules/</strong>: the workshop “house rules” Cline follows to keep results consistent</li>
+          <li><strong>workshop-config.yaml</strong>: your environment settings (like endpoints, ports, and IDs)</li>
+        </ul>
+        <p><strong>Download setup script:</strong> <a href="https://objectstorage.ap-sydney-1.oraclecloud.com/p/Pn-QrKyiT3y8544uu9i28zRnsEsW2kmVyZf8_bQPP7M28YVPVveiYGtnuTfEQjzG/n/idjhqglymefr/b/documents/o/Vibe-Coding-Lab/setup_workshop_pack_ip_setup.sh" target="_blank" rel="noopener">setup_workshop_pack_ip_setup.sh (pre‑authenticated link)</a></p>
+        <pre class="cli">mkdir lab3</pre>
+        <pre class="cli">cd lab3</pre>
+        <pre class="cli">wget https://objectstorage.ap-sydney-1.oraclecloud.com/p/Pn-QrKyiT3y8544uu9i28zRnsEsW2kmVyZf8_bQPP7M28YVPVveiYGtnuTfEQjzG/n/idjhqglymefr/b/documents/o/Vibe-Coding-Lab/setup_workshop_pack_ip_setup.sh</pre>
+        <pre class="cli">chmod +x ./setup_workshop_pack_ip_setup.sh</pre>
+        <pre class="cli">./setup_workshop_pack_ip_setup.sh -f   # -f to overwrite existing scaffolding if needed</pre>
+        <div class="warn">After running the setup script, open <code>workshop-config.yaml</code> and update required values (e.g., <code>oci.compartment_ocid</code>, region/service_endpoint, OCIR registry path, subnet OCID, private IP) for your tenancy.</div>
+        <div class="tip">Tip: Edit only the placeholders marked with <your-value>; leave others as-is for default behavior.</div>
+
+        <h2 id="phase-1">Phase 1 — Build a FastAPI AI application (GET /api/v1/recipe)</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1: GET Endpoint</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 2</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 3</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 4</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 5</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 6</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 7: MCP</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 8: Optional</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
+          </div>
+        </div>
+        <p>In this phase, you'll vibe code your first API endpoint using a prompt—Cline will handle the FastAPI setup and OCI GenAI integration automatically.</p>
+        <div class="prompt phase">
+          <p><strong>Copy and paste this prompt into Cline:</strong></p>
+          Build a minimal FastAPI backend under a folder named recipe-api. Read memory-bank/ and workshop-config.yaml for all settings. Implement a single GET endpoint at /recipe that calls my OCI GenAI endpoint and returns a random dinner recipe. Keep it simple in this phase: no POST, no health checks, no Woolworths, no Streamlit. Provide the exact uvicorn command to run locally on the configured port. Hide every technical detail behind the config and memory bank. Run uvicorn in a virtual environment and start the service after installing the requirements.
+        </div>
+        <div class="box">
+          Verify (after running uvicorn):
+  <pre class="cli"># GET (random)
+  curl -s "http://localhost:8010/api/v1/recipe" | jq</pre>
+  <pre class="cli"># GET with preferences (optional)
+  curl -s "http://localhost:8010/api/v1/recipe?cuisine=Italian&dietary=vegetarian" | jq</pre>
+        </div>
+        <div class="tip">
+          <strong>Success criteria:</strong> curl -s "http://localhost:8010/api/v1/recipe" | jq should return a JSON object with a "recipe" field containing a complete dinner recipe (title, ingredients, instructions).
+        </div>
+        <div class="tip">
+          <strong>Optional manual steps (only if automation fails):</strong>
+  <pre class="cli">python3 -m venv .venv</pre>
+  <pre class="cli">source .venv/bin/activate</pre>
+  <pre class="cli">pip install -r recipe-api/requirements.txt</pre>
+  <pre class="cli">cd recipe-api</pre>
+  <pre class="cli">python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload</pre>
+        </div>
+        <div class="tip">
+          <strong>Vibe Coding Tip:</strong> Notice how the prompt hides details like auth and endpoints? That's the Memory Bank at work—try tweaking it to see how Cline adapts!
+        </div>
+
+        <h2 id="phase-2">Phase 2 — Add features: POST /api/v1/recipe, service health and readiness</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 2: POST & Health</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 3</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 4</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 5</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 6</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 7: MCP</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 8: Optional</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
+          </div>
+        </div>
+        <p>Here, you'll extend the API with more endpoints, learning how prompts can iteratively build on prior work without manual code changes.</p>
+        <div class="prompt phase">
+          <p><strong>Copy and paste this prompt into Cline:</strong></p>
+          Extend the backend. Read memory-bank/ and workshop-config.yaml. Add:
+          <ul>
+            <li>POST /recipe (JSON body: optional "cuisine", "dietary")</li>
+            <li>GET /health and GET /ready (use standard health/readiness structure from the memory bank)</li>
+          </ul>
+          Return structured JSON with model, cuisine/dietary echo, and recipe text. Keep logging structured. Provide the GET/POST curl test commands.
+        </div>
+        <div class="box">
+          Verify:
+  <pre class="cli"># Health
+  curl -s http://localhost:8010/health | jq</pre>
+  <pre class="cli"># Ready
+  curl -s http://localhost:8010/ready | jq</pre>
+  <pre class="cli"># POST (JSON)
+  curl -s -X POST http://localhost:8010/api/v1/recipe \
+    -H "Content-Type: application/json" \
+    -d '{"cuisine":"Mexican","dietary":"vegan"}' | jq</pre>
+        </div>
+        <div class="tip">
+          <strong>Success criteria:</strong> Test POST with preferences like {"cuisine":"Italian","dietary":"vegetarian"} and verify /health, /ready return status information.
+        </div>
+        <div class="tip">
+          <strong>Vibe Coding Tip:</strong> Prompts build incrementally—reference prior phases implicitly via the Memory Bank for seamless evolution.
+        </div>
+
+        <h2 id="phase-3">Phase 3 — Extract ingredients automatically (INGREDIENTS_LIST)</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 2</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 3: Ingredients Parse</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 4</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 5</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 6</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 7: MCP</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 8: Optional</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
+          </div>
+        </div>
+        <p>This phase introduces structured output parsing, showing how prompts can enforce formats for downstream processing.</p>
+        <div class="prompt phase">
+          <p><strong>Copy and paste this prompt into Cline:</strong></p>
+          Update the recipe prompt so the AI appends a final line starting with "INGREDIENTS_LIST:" followed by a comma-separated list of main ingredients. Parse these into a simple list and include it in the API response. Keep config-driven behavior. Provide curl verification guidance.
+        </div>
+
+        <h2 id="phase-4">Phase 4 — Add Woolworths products with LLM reasoning</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 2</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 3</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 4: Woolworths + LLM</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 5</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 6</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 7: MCP</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 8: Optional</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
+          </div>
+        </div>
+        <p>Integrate external APIs with LLM reasoning, demonstrating how vibe coding handles real-world data and decision-making.</p>
+        <div class="prompt phase">
+          <p><strong>Copy and paste this prompt into Cline:</strong></p>
+          Add a Woolworths integration service. Read memory-bank/ and workshop-config.yaml. Follow the Woolworths Integration Standard:
+          <ul>
+            <li>Use primary endpoint GET /ui/Search/products with browser-like headers</li>
+            <li>Return top-2 candidates; prefer LargeImageFile for images (fallbacks allowed)</li>
+            <li>Keep calls async with concurrency guard, retries/backoff, and timeouts</li>
+            <li>Provide brief LLM selection reasoning with heuristic fallback on timeout</li>
+          </ul>
+          Include a products array like [{ displayName, price, image, reasoning }] in the API response. Provide curl verification.
+        </div>
+        <div class="box">
+          Verify:
+  <pre class="cli">curl -s "http://localhost:8010/api/v1/recipe?cuisine=Thai" | jq '.products // .woolworths_products | .[0:5]'</pre>
+        </div>
+        <div class="tip">
+          <strong>Success criteria:</strong> curl response includes "products" (or "woolworths_products") with product details and reasoning for each ingredient.
+        </div>
+        <p class="muted">No manual steps needed—let Cline do the work!</p>
+        <div class="tip">
+          <strong>Vibe Coding Tip:</strong> Hide credentials and concurrency in prompts—Cline uses config.yaml and standards to manage safely.
+        </div>
+
+        <h2 id="phase-5">Phase 5 — Build the Streamlit web app (local)</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 2</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 3</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 4</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 5: Streamlit UI</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 6</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 7: MCP</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 8: Optional</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
+          </div>
+        </div>
+        <p>Shift to frontend with Streamlit, connecting to your API and adding state—vibe code a full-stack app!</p>
+        <div class="prompt phase">
+          <p><strong>Copy and paste this prompt into Cline:</strong></p>
+          Build a friendly Streamlit app called “What’s for Dinner?” under <code>recipe-streamlit-app/</code>. Use the Workshop Memory Bank and <code>workshop-config.yaml</code> to handle all the details quietly in the background (per Streamlit App Standard). The app should:
+          <ul>
+            <li>Let me choose cuisine and dietary options in the sidebar with “Generate” and “Surprise me” buttons</li>
+            <li>Show the recipe, clickable ingredient chips (to add to cart), and product suggestions with prices and clear reasons</li>
+            <li>Work out of the box with my running API; if the address isn’t known, let me set it in the sidebar and include a quick connection test</li>
+            <li>Provide a command to run the app (and a backup command on a different port if the first is busy)</li>
+            <li>Hide technical choices and implementation details; follow the Memory Bank, configuration, and .clinerules. Create a virtual env to run streamlit service. Allow iptables and firewalld for Streamlit and FastAPI application ports and verify external access.</li>
+          </ul>
+        </div>
+        <div class="box">
+          Verify:
+          <ul>
+            <li>Run: <code>streamlit run recipe-streamlit-app/app.py</code></li>
+            <li>Generate a recipe; ensure state persists across interactions.</li>
+          </ul>
+        </div>
+        <div class="tip">
+          <strong>Success criteria:</strong> Run streamlit run recipe-streamlit-app/app.py; generate recipes and verify state persists (last recipe, cart).
+        </div>
+        <p class="muted">No manual steps needed—let Cline do the work!</p>
+        <div class="tip">
+          <strong>Vibe Coding Tip:</strong> Describe UI behaviors naturally in prompts; Cline infers the Streamlit code.
+        </div>
+
+        <h2 id="phase-6">Phase 6 — Run FastAPI and Streamlit as systemd services (auto‑restart & on‑boot)</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 2</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 3</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 4</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 5</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 6: Systemd Services</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 7: MCP</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 8: Optional</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
+          </div>
+        </div>
+        <p>Make your app production-ready on the VM with auto-restart, learning vibe coding for system configuration.</p>
+        <div class="prompt phase">
+          <p><strong>Copy and paste this prompt into Cline:</strong></p>
+          <ul>
+            <li>Configure Oracle Linux to run both FastAPI (uvicorn) and Streamlit as systemd services that start on boot and restart on failure. Use the current project directory as the WorkingDirectory and prefer a Python venv if present. Ensure Restart=always and WantedBy=multi-user.target. Create, enable, start, and show how to check logs for both services. Keep implementation details in the Memory Bank and .clinerules; the prompt should be concise and friendly.</li>
+          </ul>
+        </div>
+        <div class="tip"><strong>Information only:</strong> The following service management commands are provided for reference; do not run them unless instructed during the workshop.</div>
+        <div class="box">
+  <pre class="cli"># Information only — do not run unless instructed
+# Reload, enable on boot, and start
+  sudo systemctl daemon-reload</pre>
+  <pre class="cli">sudo systemctl enable recipe-api.service recipe-streamlit.service</pre>
+  <pre class="cli">sudo systemctl start recipe-api.service recipe-streamlit.service</pre>
+  <pre class="cli"># Check status/logs
+  systemctl --no-pager status recipe-api.service</pre>
+  <pre class="cli">systemctl --no-pager status recipe-streamlit.service</pre>
+  <pre class="cli">journalctl -u recipe-api.service -n 100 --no-pager</pre>
+  <pre class="cli">journalctl -u recipe-streamlit.service -n 100 --no-pager</pre>
+        </div>
+        <div class="box">
+          Verify (after services start):
+  <pre class="cli"># API reachable
+  curl -s "http://localhost:8010/api/v1/recipe" | jq</pre>
+  <pre class="cli"># Streamlit UI reachable (from VM)
+  curl -sI "http://localhost:8501/" | head -n 1</pre>
+  <pre class="cli"># Reboot test (services should auto-start)
+  sudo reboot now</pre>
+  <pre class="cli"># After reconnect:
+  systemctl is-active recipe-api.service</pre>
+  <pre class="cli">systemctl is-active recipe-streamlit.service</pre>
+        </div>
+        <div class="tip">
+          <strong>Success criteria:</strong> Both services are active after reboot and automatically restart if the process exits or crashes.
+        </div>
+        <p class="muted">No manual steps needed—let Cline do the work!</p>
+        <div class="tip">
+          <strong>Vibe Coding Tip:</strong> Prompts can configure systems too—describe the behavior, and Cline generates the systemd units.
+        </div>
+
+        <h2 id="phase-7">Phase 7 — Create a Local MCP Server for Recipe API</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 2</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 3</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 4</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 5</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 6</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 7: MCP Server</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 8: Optional</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
+          </div>
+        </div>
+        <p>Create a local MCP server to extend capabilities by integrating with your recipe API.</p>
+        <div class="prompt phase">
+          <p><strong>Copy and paste this prompt into Cline:</strong></p>
+          <p>Create a local MCP server so I can ask for dinner recipes from my existing API without changing my app or UI.</p>
+          <ul>
+            <li>First, ask me for my API Base URL (for example: http://localhost:8010 or my API Gateway like https://.../api/v1). Use exactly what I provide.</li>
+            <li>Add two simple tools that mirror my API:
+              <ul>
+                <li>get_recipe — calls GET /recipe with optional cuisine and dietary</li>
+                <li>post_recipe — calls POST /recipe with optional cuisine and dietary</li>
+              </ul>
+            </li>
+            <li>Register the server so I can use these tools from Cline.</li>
+            <li>After setup, test by generating an Italian pescatarian dinner recipe.</li>
+          </ul>
+        </div>
+        <div class="tip">
+          <strong>Note:</strong> The MCP server standards for this workshop live in <code>.clinerules/11-mcp-standards.md</code> and <code>memory-bank/mcpStandards.md</code>. This prompt is intentionally high-level for copy/paste.
+        </div>
+        <div class="tip">
+          <strong>Success criteria:</strong> After setup, use Cline to request a recipe via the MCP tools and verify the response.
+        </div>
+        <div class="tip">
+          <strong>Vibe Coding Tip:</strong> MCP servers allow extending AI capabilities without modifying core code.
+        </div>
+
+        <h2 id="phase-8">Phase 8 — [Optional] Advanced Integrations: Containers, CI, API Gateway, and Load Balancer</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 2</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 3</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 4</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 5</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 6</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 7</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 8: Optional</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
+          </div>
+        </div>
+
+  <details>
+    <summary><strong>Optional (20-30 min): Containerize apps and push to OCIR (devops‑recipe standard)</strong></summary>
+      <div class="prompt phase">
+        <p><strong>Copy and paste this prompt into Cline:</strong></p>
+        Containerize the FastAPI API using the approved standard: python:3.11‑slim, non‑root user (uid 1000), EXPOSE 8000, HEALTHCHECK with curl -f http://localhost:8000/health, and run uvicorn on port 8000 with 2 workers. <b>All values (image URL/repo/tag) come strictly from workshop-config.yaml and the Memory Bank—never hardcoded or prompted. Containers use Resource Principals by default (do not bake ~/.oci). </b> Produce the Dockerfile if missing, then build and push the image using config values. Output all commands with values filled from config.
+      </div>
+      <div class="box">
+        Example commands (filled via config):
+  <pre class="cli"># Login to OCIR (use an Auth Token for your OCI user)
+  docker login -u "sdncspltazsk/<username>" syd.ocir.io</pre>
+  <pre class="cli"># Build and push API image (standard: port 8000, non-root, healthcheck curl /health)
+  docker build -t syd.ocir.io/sdncspltazsk/recipe-api:latest -f recipe-api/Dockerfile .</pre>
+  <pre class="cli">docker push syd.ocir.io/sdncspltazsk/recipe-api:latest</pre>
+        <p class="muted">The Dockerfile must follow the enforced standard (python:3.11‑slim, non‑root uid 1000, curl healthcheck on /health, uvicorn :8000).</p>
+      </div>
+    </details>
+
+  <details>
+    <summary><strong>Optional (20-30 min): Containerize and push Streamlit UI to OCIR (standardized, config-driven)</strong></summary>
+      <div class="prompt phase">
+        <p><strong>Copy and paste this prompt into Cline:</strong></p>
+        Containerize the streamlit UI using the approved standard: python:3.11‑slim, non‑root user (uid 1000). <b>All values (image URL/repo/tag) come strictly from workshop-config.yaml and the Memory Bank—never hardcoded or prompted. Containers use Resource Principals by default (do not bake ~/.oci).</b>
+        - Produce the Dockerfile in <code>recipe-streamlit-app/</code> if missing, strict to standards.
+        - Before pushing, ask the user to log in in any terminal:
+          <code>docker login syd.ocir.io -u sdncspltazsk/barjinder.s.singh@oracle.com --password <AUTH TOKEN></code>
+        - Tag the image as <code>syd.ocir.io/sdncspltazsk/recipe-streamlit-app:latest</code>, but append a random 3-digit number to latest (e.g. <code>:latest-483</code>) to avoid conflicts with other users.
+        - Output all docker build and push commands with config values filled in.
+      </div>
+      <div class="box">
+        Example commands (filled via config):
+  <pre class="cli"># Manual login
+  docker login syd.ocir.io -u sdncspltazsk/barjinder.s.singh@oracle.com --password <AUTH TOKEN></pre>
+  <pre class="cli"># Tag with random 3 digit suffix, e.g. rnd=$(shuf -i 100-999 -n 1)
+  rnd=$(shuf -i 100-999 -n 1)</pre>
+  <pre class="cli">docker build -t syd.ocir.io/sdncspltazsk/recipe-streamlit-app:latest-${rnd} -f recipe-streamlit-app/Dockerfile recipe-streamlit-app</pre>
+  <pre class="cli">docker push syd.ocir.io/sdncspltazsk/recipe-streamlit-app:latest-${rnd}</pre>
+        <p class="muted">The Dockerfile must comply (python:3.11-slim, non-root, healthcheck, EXPOSE 8501, do not bake ~/.oci), and tag must be unique per user run.</p>
+      </div>
+    </details>
+
+  <details>
+    <summary><strong>Optional (20-30 min): Expose Streamlit via a Public Load Balancer (Oracle Linux VM)</strong></summary>
+      <div class="prompt phase">
+        <p><strong>Copy and paste this prompt into Cline:</strong></p>
+        Please expose my Streamlit service using an Oracle OCI Load Balancer.
+        <ul>
+          <li>The name of the load balancer should be: <your-desired-lb-name></li>
+          <li>Use network type, subnets, and all backend configuration from workshop-config.yaml only—never prompt me for ports, subnets, or IPs.</li>
+          <li>Set health check and backend mapping to follow config and automation rules; I only provide the display name and whether this LB is public (default is public).</li>
+          <li>After setup, output the public hostname/IP and a command to verify Streamlit is accessible.</li>
+        </ul>
+        All tech mapping/CLI tasks are automated behind the config and memory bank.
+      </div>
+      <details class="collapsible">
+        <summary><strong>Config example for workshop-config.yaml</strong></summary>
+        <pre class="cli">streamlit_lb:
+  display_name: my-streamlit-lb
+  shape: flexible
+  is_public: true
+  subnet_ids:
+    - ocid1.subnet.oc1.ap-sydney-1.aaaaaaaahrzolq7xrovbyecct3xbrzemn2mpgsimffukbbqepgke4pbuwtsa
+  listener_port: 80
+  backend_host: <auto-detected or configured>
+  backend_port: 8501
+  health_check_path: /_stcore/health
+  health_check_protocol: HTTP
+  health_check_port: 8501</pre>
+      </details>
+      <div class="box">
+        Verify:
+        <pre class="cli"># After creation, test Streamlit via the LB public address
+curl -sI "http://<lb-public-host>/" | head -n 1</pre>
+      </div>
+  </details>
+
+  <details>
+    <summary><strong>Optional (20-30 min): Run on OCI Container Instances (API)</strong></summary>
+      <div class="prompt phase">
+        <p><strong>Copy and paste this prompt into Cline:</strong></p>
+        Create an OCI Container Instance for the API. <b>All values (image URL, env, subnet, private IP, shape) must be read from workshop-config.yaml/Memory Bank—never hardcoded or prompted. Use Resource Principals by default for all SDK calls (no ~/.oci in containers). </b> Enforce delete‑then‑recreate when reusing private IPs. Keep container port 8000 and verify /health, then GET/POST /recipe after create.
+      </div>
+      <div class="box">
+        <div class="warn">If you must reuse the same private IP, delete the existing Container Instance first and wait for IP release.</div>
+      </div>
+    </details>
+
+  <details>
+      <summary><strong>Optional (20-30 min): Create an OCI Container Instance for Streamlit (config-driven, devops-standard)</strong></summary>
+      <div class="prompt phase">
+        <p><strong>Copy and paste this prompt into Cline:</strong></p>
+        Create an OCI Container Instance for my Streamlit UI. All values (image URL/repo/tag, subnet, compartment, shape, env) must be read from workshop-config.yaml and the Memory Bank—never hardcoded or prompted. Use Resource Principals by default for all OCI SDK calls (do not copy ~/.oci/config into containers). Pick any random private IP from the primary subnet in config. Enforce the delete‑then‑recreate pattern if the private IP is reused. Expose container port 8501. Show how to verify Streamlit is healthy via HTTP and how to test via CLI.
+        <br>Afterward, output the full oci ci create command and curl verifications.
+      </div>
+      <div class="box">
+        <p class="muted">
+          Notes:
+          <ul>
+            <li>Release the previous Container Instance if reusing a private IP (CI cannot claim an IP held by an existing instance).</li>
+            <li>This flow uses Resource Principals automatically—no ~/.oci/config required inside the container.</li>
+          </ul>
+        </p>
+      </div>
+    </details>
+
+  <details>
+    <summary><strong>Optional (10-15 min): OCI DevOps Integration — Create Project, Repo, and Push Code</strong></summary>
+      <div class="prompt phase">
+        <p><strong>Copy and paste this prompt into Cline:</strong></p>
+        <p>In my OCI compartment named "techdaylabs", set up DevOps and push my current workspace code:</p>
+        <ul>
+          <li>Create (or find) an OCI Notifications topic named "vibe-workshop-devops-notify" and use it for DevOps project notifications.</li>
+          <li>Create (or use) an OCI DevOps Project named "vibe-workshop" in the same compartment.</li>
+          <li>Create (or use) a hosted DevOps repository named "vibe-check67".</li>
+          <li>Initialize a local git repo if needed, add a .gitignore (Python, venvs, temp, CI outputs), remove any temporary folders and files, commit, and push the cleaned code to the DevOps repo on the main branch.</li>
+          <li>Prefer SSH for pushing. If SSH fails, fall back to HTTPS with an OCI Auth Token.</li>
+          <li>If the remote repo contains default content, fetch origin/main and merge with --no-rebase and --allow-unrelated-histories, then push and set upstream.</li>
+        </ul>
+        <p class="muted">Constraints and standards are enforced automatically via <code>.clinerules/10-devops-standards.md</code> and <code>memory-bank/devopsStandards.md</code>.</p>
+      </div>
+      <div class="box">
+        <strong>Example checks (after Cline runs):</strong>
+  <pre class="cli"># Show repo URLs
+  oci devops repository get --repository-id <REPO_OCID> --query 'data."ssh-url"' --raw-output</pre>
+  <pre class="cli">oci devops repository get --repository-id <REPO_OCID> --query 'data."http-url"' --raw-output</pre>
+  <pre class="cli"># Verify last few commits
+  git -C /path/to/workspace log --oneline -n 5</pre>
+  <pre class="cli"># Remote refs (SSH)
+  GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=yes' git -C /path/to/workspace ls-remote origin</pre>
+        <p class="muted">Tip: If you see “non‑fast‑forward” or “divergent branches”, fetch origin/main and merge with <code>git pull --no-rebase --allow-unrelated-histories origin main</code>, then push again.</p>
+      </div>
+    </details>
+
+  <details>
+    <summary><strong>Optional (20-30 min): Put the API behind API Gateway (Oracle Linux VM)</strong></summary>
+      <div class="prompt phase">
+      <p><strong>Copy and paste this prompt into Cline:</strong></p>
+      Please expose my recipe API using Oracle API Gateway.
+      - Use all route/back-end/host details only from workshop-config.yaml and memory bank—never prompt for IP, port, container, or file names.
+      - The API is a normal FastAPI server running on an Oracle Linux VM.
+      - Only ask for the API Gateway display name and type (default is PUBLIC).
+      - After creation, output the public API Gateway endpoint and a sample curl to test /api/v1/recipe.
+      Network, backend mapping and all CLI commands should be config-driven and automated, so users only need to provide simple, high-level guidance.
+    </div>
+    <div class="box">
+      Verify:
+  <pre class="cli"># List all deployments (get deployment and gateway OCID/endpoints)
+  oci api-gateway deployment list --compartment-id <COMPARTMENT_OCID></pre>
+  <pre class="cli"># (If you need to update the deployment)
+  oci api-gateway deployment update --deployment-id <DEPLOYMENT_OCID> --specification file://routes.json</pre>
+  <pre class="cli"># Find the gateway endpoint (replace in curl below)
+  oci api-gateway gateway get --gateway-id <API_GATEWAY_OCID> --query 'data."endpoint"' --raw-output</pre>
+  <pre class="cli"># Test a recipe API request (swap in your endpoint):
+  curl -s "https://<gateway-endpoint>/api/v1/recipe?cuisine=Italian" | jq</pre>
+  <pre class="cli"># If docs or OpenAPI are routed:
+  curl -s "https://<gateway-endpoint>/openapi.json" | jq</pre>
+  <pre class="cli"># Open in browser: https://<gateway-endpoint>/docs</pre>
+    </div>
+      <div class="box">
+        <strong>Oracle Cloud Console (UI) steps</strong>
+        <ol>
+          <li>Open “API Gateway” in OCI Console and create a Gateway (choose Compartment and VCN/subnet).</li>
+          <li>Create a Deployment:
+            <ul>
+              <li>Path prefix: <code>/recipe</code></li>
+              <li>Route: <code>/api/v1/*</code> to your backend service</li>
+            </ul>
+          </li>
+          <li>After deployment, copy the Gateway endpoint and test with curl (see above).</li>
+        </ol>
+      </div>
+    </details>
+
+        <h2 id="phase-9">Phase 9 — End‑to‑end validation and wrap‑up</h2>
+        <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 2</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 3</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 4</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 5</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 6</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 7</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 8</div>
+            <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px; border:2px solid #16a34a; background:#dcfce7;">Phase 9: Validation</div>
+          </div>
+        </div>
+
+        <div class="box">
+          <strong>Backend API checks</strong>
+  <pre class="cli"># Health and readiness
+curl -s http://localhost:8010/health | jq
+curl -s http://localhost:8010/ready | jq</pre>
+  <pre class="cli"># GET (random) and GET with preferences
+curl -s "http://localhost:8010/api/v1/recipe" | jq
+curl -s "http://localhost:8010/api/v1/recipe?cuisine=Italian&dietary=vegetarian" | jq</pre>
+  <pre class="cli"># POST (JSON)
+curl -s -X POST http://localhost:8010/api/v1/recipe \
+  -H "Content-Type: application/json" \
+  -d '{"cuisine":"Mexican","dietary":"vegan"}' | jq</pre>
+        </div>
+
+        <div class="box">
+          <strong>Streamlit UI checks</strong>
+  <pre class="cli"># From the VM
+curl -sI "http://localhost:8501/" | head -n 1</pre>
+          <p class="muted">Open the UI in a browser if exposed, generate recipes, and confirm state (last recipe, cart) persists.</p>
+        </div>
+
+        <div class="box">
+          <strong>MCP tools (optional if configured)</strong>
+          <p class="muted">From Cline, invoke your local MCP server tools (get_recipe/post_recipe) and verify a valid dinner recipe is returned.</p>
+        </div>
+
+        <div class="box">
+          <strong>Containers and API Gateway (optional)</strong>
+  <pre class="cli"># Container Instance health (API)
+curl -s "http://<CI-PRIVATE-IP>:8000/health" | jq</pre>
+  <pre class="cli"># API Gateway route test (swap in your endpoint)
+curl -s "https://<gateway-endpoint>/api/v1/recipe?cuisine=Italian" | jq</pre>
+        </div>
+
+        <div class="tip">
+          <strong>Success criteria:</strong> All health endpoints return OK; GET/POST recipe return a complete recipe; UI loads and persists state; optional MCP/CI/Gateway checks succeed.
+        </div>
+
+        <details class="collapsible" id="troubleshooting">
+          <summary><strong>Troubleshooting Prompts (Natural Language)</strong></summary>
+          <div class="prompt">
+            <p><strong>Copy and paste this troubleshooting prompt into Cline:</strong></p>
+            The API can’t reach OCI GenAI. Read memory-bank/ and workshop-config.yaml, fix authentication to use ~/.oci/config locally and resource principals in containers. Do not hardcode secrets. Re-test /health and /ready.
+          </div>
+          <h3>App Issues</h3>
+          <div class="prompt">
+            <p><strong>Copy and paste this troubleshooting prompt into Cline:</strong></p>
+            Ingredient extraction missing. Enforce a final line starting with "INGREDIENTS_LIST:" and parse it into a list. Re-run and confirm.
+          </div>
+          <div class="prompt">
+            <p><strong>Copy and paste this troubleshooting prompt into Cline:</strong></p>
+            Woolworths results empty/slow. Apply retries/backoff, respect concurrency limits, and log reasoning. Use the Woolworths Integration Standard for endpoints/headers.
+          </div>
+          <div class="prompt">
+            <p><strong>Copy and paste this troubleshooting prompt into Cline:</strong></p>
+            Reuse the same private IP for Container Instance. Follow the delete-then-recreate rule from the Memory Bank; wait until the IP is released before creating a new instance.
+          </div>
+        </details>
+
+        <details class="collapsible" id="oci-iam-policies">
+          <summary><strong>Appendix — OCI IAM Policies (workshop baseline)</strong></summary>
+          <div class="box">
+            <strong>Instance Principals (generic) — minimal policies for this workshop</strong>
+<pre class="cli"># Create a Dynamic Group (choose ONE of these rules based on what runs your code)
+
+# For an Oracle Linux VM (Instance Principals)
+ALL {resource.type = 'instance', resource.compartment.id = '<COMPARTMENT_OCID>'}
+
+# For an OCI Container Instance (Resource Principals)
+ALL {resource.type = 'containerinstance', resource.compartment.id = '<COMPARTMENT_OCID>'}</pre>
+<pre class="cli"># Attach policies to the dynamic group (replace <DYN_GROUP_NAME> and <COMPARTMENT_NAME>)
+
+allow dynamic-group <DYN_GROUP_NAME> to use generative-ai-family in compartment <COMPARTMENT_NAME>
+allow dynamic-group <DYN_GROUP_NAME> to manage container-instances in compartment <COMPARTMENT_NAME>
+allow dynamic-group <DYN_GROUP_NAME> to manage api-gateway-family in compartment <COMPARTMENT_NAME>
+allow dynamic-group <DYN_GROUP_NAME> to manage load-balancers in compartment <COMPARTMENT_NAME>
+allow dynamic-group <DYN_GROUP_NAME> to use virtual-network-family in compartment <COMPARTMENT_NAME>
+
+# OCIR (push/pull images)
+allow dynamic-group <DYN_GROUP_NAME> to manage repos in tenancy
+allow dynamic-group <DYN_GROUP_NAME> to read repos in tenancy</pre>
+            <p class="muted">Tip: Keep least-privilege. Add Object Storage or Vault access only if your build requires it.</p>
+          </div>
+
+          <div class="box">
+            <strong>Note for Container Instances</strong>
+            <p>If you deploy on OCI Container Instances, use the <code>containerinstance</code> dynamic group rule shown above and attach the same minimal policies. Add optional access (Object Storage, Vault) only if your app needs them.</p>
+          </div>
+        </details>
+
+        <details class="collapsible" id="appendix">
+          <summary><strong>Appendix — What the Memory Bank and Cline Rules enforce</strong></summary>
+          <p class="muted">The Memory Bank keeps behavior consistent; Cline Rules make standards non‑negotiable:</p>
+          <ul>
+            <li>Always read all memory-bank files first; act based on activeContext and progress</li>
+            <li>Config-driven architecture (no hardcoded region/endpoints/IDs)</li>
+            <li>Standard API surface (health, ready, versioned routes), structured logging</li>
+            <li>OCI deployment rules (IP reuse, timeouts, shapes), OCIR build/push patterns</li>
+            <li>Streamlit session_state persistence and UX conventions</li>
+            <li>GenAI prompt structure that emits INGREDIENTS_LIST</li>
+            <li>Woolworths integration patterns and LLM product selection guardrails</li>
+            <li>Containerization standard aligned to devops‑recipe (port 8000, non‑root, curl healthcheck)</li>
+          </ul>
+          <div class="box">
+            <strong>Key Takeaways</strong>
+            <ul>
+              <li>Prompts drive everything—focus on intent, not code.</li>
+              <li>Use Memory Bank for context and .clinerules for enforced standards.</li>
+              <li>Config.yaml keeps builds portable and secure.</li>
+              <li>Vibe coding scales from APIs to infra with tools like Cline.</li>
+            </ul>
+          </div>
+        </details>
+
+        <div class="warn">
+          Instructors: Before the workshop, review workshop-config.yaml and Memory Bank to ensure every required value is present for your tenancy (compartment, subnets, registry namespace, etc.).
+        </div>
+
+      </div>
+    </div>
+  </div>
+<script>
+  // Ensure embedded Lab Servers iframe fetches a fresh copy and explicitly pass XLSX URL
+  (function () {
+    const f = document.getElementById('lab-servers-frame');
+    if (!f) return;
+    const base = f.getAttribute('data-src-base') || f.getAttribute('src');
+    if (!base) return;
+
+    // Build viewer URL with cache-buster and explicit ?xlsx=... pointing to the sheet in the same folder
+    const xlsxUrl = base.replace(/lab-servers\.html(\?.*)?$/i, 'lab-servers.xlsx');
+    const u = new URL(base, window.location.href);
+    u.searchParams.set('t', Date.now().toString());
+    if (xlsxUrl) {
+      u.searchParams.set('xlsx', xlsxUrl);
+    }
+    f.src = u.toString();
+  })();
+</script>
+  <script>
+    // YouTube Presenter + Theme toggles, and internal content cleanup
+    (function(){
+      const body = document.body;
+      const LS_PRESENT = 'yt-present';
+      const apply = () => {
+        // Force base light theme; ensure no theme override classes are applied
+        body.classList.remove('theme-dark','theme-light');
+        const p = localStorage.getItem(LS_PRESENT) === '1';
+        body.classList.toggle('present', p);
+      };
+      apply();
+
+      const btnPresent = document.getElementById('toggle-present');
+      const togglePresent = () => {
+        const cur = body.classList.toggle('present');
+        localStorage.setItem(LS_PRESENT, cur ? '1' : '0');
+      };
+      if (btnPresent) btnPresent.addEventListener('click', togglePresent);
+
+      document.addEventListener('keydown', (e)=>{
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+        if (e.key.toLowerCase() === 'p') togglePresent();
+      });
+
+      // Remove Oracle-internal sections and internal Confluence links
+      const removeNode = (el)=> el && el.parentNode && el.parentNode.removeChild(el);
+
+      // Explicit entitlements block (if present)
+      removeNode(document.getElementById('entitlements'));
+
+      // Any collapsible marked "Oracle Employees Only"
+      document.querySelectorAll('details.collapsible > summary').forEach(sum=>{
+        if (/Oracle Employees Only/i.test(sum.textContent || '')) {
+          removeNode(sum.parentElement);
+        }
+      });
+
+      // Remove internal Confluence links
+      document.querySelectorAll('a[href*="confluence.oraclecorp.com"]').forEach(a=>{
+        const li = a.closest('li');
+        removeNode(li || a);
+      });
+
+      // Remove duplicate H1 under the header if present
+      const content = document.querySelector('.content');
+      if (content) {
+        const h1 = content.querySelector('h1');
+        if (h1 && /Vibe Coding Workshop/i.test(h1.textContent || '')) {
+          const next = h1.nextElementSibling;
+          removeNode(h1);
+          if (next && next.classList && next.classList.contains('muted')) removeNode(next);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
