@@ -491,6 +491,8 @@
           // Add copy buttons to CLI blocks after DOM is ready
           document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('pre.cli').forEach((pre) => {
+              // Capture the original code BEFORE appending the button so the button label isn't copied
+              const original = pre.textContent;
               const btn = document.createElement('button');
               btn.className = 'copy-btn';
               btn.type = 'button';
@@ -498,7 +500,7 @@
               btn.setAttribute('aria-label', 'Copy command');
               btn.addEventListener('click', async () => {
                 try {
-                  await navigator.clipboard.writeText(pre.innerText.trim());
+                  await navigator.clipboard.writeText((original || '').trim());
                   const prev = btn.textContent;
                   btn.textContent = 'Copied!';
                   setTimeout(() => (btn.textContent = prev), 1200);
@@ -634,10 +636,10 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
           <li><strong>.clinerules/</strong>: the workshop “house rules” Cline follows to keep results consistent</li>
           <li><strong>workshop-config.yaml</strong>: your environment settings (like endpoints, ports, and IDs)</li>
         </ul>
-        <p><strong>Download setup script:</strong> <a href="https://objectstorage.ap-sydney-1.oraclecloud.com/p/Pn-QrKyiT3y8544uu9i28zRnsEsW2kmVyZf8_bQPP7M28YVPVveiYGtnuTfEQjzG/n/idjhqglymefr/b/documents/o/Vibe-Coding-Lab/setup_workshop_pack_ip_setup.sh" target="_blank" rel="noopener">setup_workshop_pack_ip_setup.sh (pre‑authenticated link)</a></p>
+        <p><strong>Download setup script:</strong> <a href="https://raw.githubusercontent.com/barjinders/vibe-lab-workshop/master/setup_workshop_pack_ip_setup.sh" target="_blank" rel="noopener">setup_workshop_pack_ip_setup.sh (from GitHub repo)</a></p>
         <pre class="cli">mkdir lab3</pre>
         <pre class="cli">cd lab3</pre>
-        <pre class="cli">wget https://objectstorage.ap-sydney-1.oraclecloud.com/p/Pn-QrKyiT3y8544uu9i28zRnsEsW2kmVyZf8_bQPP7M28YVPVveiYGtnuTfEQjzG/n/idjhqglymefr/b/documents/o/Vibe-Coding-Lab/setup_workshop_pack_ip_setup.sh</pre>
+        <pre class="cli">curl -fsSL -o setup_workshop_pack_ip_setup.sh https://raw.githubusercontent.com/barjinders/vibe-lab-workshop/master/setup_workshop_pack_ip_setup.sh</pre>
         <pre class="cli">chmod +x ./setup_workshop_pack_ip_setup.sh</pre>
         <pre class="cli">./setup_workshop_pack_ip_setup.sh -f   # -f to overwrite existing scaffolding if needed</pre>
         <div class="warn">After running the setup script, open <code>workshop-config.yaml</code> and update required values (e.g., <code>oci.compartment_ocid</code>, region/service_endpoint, OCIR registry path, subnet OCID, private IP) for your tenancy.</div>
