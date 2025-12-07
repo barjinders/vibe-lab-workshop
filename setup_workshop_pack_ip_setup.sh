@@ -1081,7 +1081,7 @@ if [[ ! -f "${DEST}/workshop-config.yaml" || "${FORCE}" -eq 1 ]]; then
 oci:
   service_endpoint: "https://inference.generativeai.us-chicago-1.oci.oraclecloud.com"  # Adjust for your region (e.g., au-sydney-1)
   auth_mode: "instance_principals"  # Use Instance/Resource Principals signer; no config file needed
-  compartment_ocid: "ocid1.compartment.oc1..aaaaaaaaf5srevccb2moc76cxaanrkel6m7dxe3z4o5yvpeql2jmxqzsqkaq"
+  compartment_ocid: "ocid1.compartment.oc1..xxxxxxxx"
 
 llm:
   model_id: "xai.grok-4-fast-reasoning"  # Or other supported model
@@ -1102,21 +1102,21 @@ docker:
 
 deployment:
   container_instance_shape: "CI.Standard.A1.Flex"
-  subnet_ocid: "ocid1.subnet.oc1.ap-sydney-1.aaaaaaaaovukl5n4ty62riay3z4h2y6diuekqq5saw4f6575m3nrngbn2tdq"
+  subnet_ocid: "ocid1.subnet.oc1..xxxxxxxx"
   private_ip: "172.16.40.10"
   # For API Gateway and Load Balancer: set route_prefix, health_check_path, etc.
 
 api_gateway:
   display_name: "vibe-api-public-gw"
   type: "PUBLIC"                   # PUBLIC (default) or PRIVATE
-  subnet_id: "ocid1.subnet.oc1.ap-sydney-1.aaaaaaaawtsy7pz5wvi75rk22asb3v444iju3boczutiqijzhtlpbw6hwngq"
+  subnet_id: "ocid1.subnet.oc1..xxxxxxxx"
 
 streamlit_lb:
   display_name: "vibe-workshop-streamlit-lb"
   shape: "flexible"
   is_public: true
   subnet_ids:
-    - "ocid1.subnet.oc1.ap-sydney-1.aaaaaaaawtsy7pz5wvi75rk22asb3v444iju3boczutiqijzhtlpbw6hwngq"
+    - "ocid1.subnet.oc1..xxxxxxxx"
   listener_port: 80
   backend_host: "localhost"        # Set to your VM's private IP if needed
   backend_port: 8501
