@@ -29,6 +29,8 @@
 #   ./setup_workshop_pack.sh -f                   # force overwrite existing files
 #   ./setup_workshop_pack.sh -d /path/to/project  # write into a different directory
 #   ./setup_workshop_pack.sh -d /path -f          # write and overwrite there
+#   ./setup_workshop_pack.sh -O                   # open firewall ports (8010, 8501, 8502) and add iptables ACCEPT rules
+#   ./setup_workshop_pack.sh -T                   # run bounded first-go smoke tests (process/ports, API /ready and sample /recipe, UI GET /)
 #
 # Creates (if absent or with -f):
 #   ./memory-bank/{projectbrief.md,productContext.md,systemPatterns.md,techContext.md,activeContext.md,genaiStandards.md,woolworthsStandards.md,streamlitStandards.md,containerStandards.md,systemdStandards.md,devopsStandards.md,mcpStandards.md}
@@ -51,6 +53,11 @@ if [ $# -eq 0 ]; then
   set -- ""
 fi
 
+# Quiet mode: suppress stdout unless VERBOSE is set (errors still go to stderr)
+if [[ -z "${VERBOSE:-}" ]]; then
+  exec 1>/dev/null
+fi
+
 # ----------------------------------------------------------------------
 # Oracle API Gateway and Container Instance Best Practice (2025-11-30)
 # ----------------------------------------------------------------------
@@ -71,19 +78,22 @@ fi
 # ----------------------------------------------------------------------
 # Other previously specified standards (Docker, FastAPI, systemd, etc) still apply.
 
-# Ensure PyYAML is installed for parsing
-if ! python3 -c "import yaml" &> /dev/null; then
-  echo "Installing pyyaml for YAML parsing..."
-  python3 -m pip install pyyaml
+# Ensure PyYAML is installed for parsing (quiet, non-interactive)
+if ! python3 -c "import yaml" >/dev/null 2>&1; then
+  python3 -m pip install --user -q --disable-pip-version-check --no-input pyyaml >/dev/null 2>&1 || true
 fi
 
 DEST="."
 FORCE=0
+OPEN_PORTS=0
+RUN_TESTS=0
 
-while getopts ":d:f" opt; do
+while getopts ":d:fOT" opt; do
   case "${opt}" in
     d) DEST="${OPTARG}" ;;
     f) FORCE=1 ;;
+    O) OPEN_PORTS=1 ;;
+    T) RUN_TESTS=1 ;;
     *) ;;
   esac
 done
@@ -93,36 +103,44 @@ DEST="$(cd "${DEST}" && pwd)"
 
 echo "Scaffolding Workshop Pack into: ${DEST}"
 echo "Force overwrite: ${FORCE}"
+echo "Open ports: ${OPEN_PORTS}"
+echo "Run tests: ${RUN_TESTS}"
 echo "---------------------------------------------"
 
 # Load defaults from workshop-config.yaml if it exists (or use hard-coded)
 load_defaults() {
   if [ -f "${DEST}/workshop-config.yaml" ]; then
-    eval "$(python3 - <<'EOF'
-import yaml
-import sys
+    eval "$(DEST="${DEST}" python3 - <<'EOF'
+import os, sys, yaml
+dest = os.environ.get("DEST", ".")
+path = os.path.join(dest, "workshop-config.yaml")
 try:
-    with open('${DEST}/workshop-config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
-    print(f"export OCI_SERVICE_ENDPOINT='{config['oci']['service_endpoint']}'")
-    print(f"export OCI_AUTH_MODE='{config['oci'].get('auth_mode','instance_principals')}'")
-    print(f"export OCI_COMPARTMENT_OCID='{config['oci']['compartment_ocid']}'")
-    print(f"export LLM_MODEL_ID='{config['llm']['model_id']}'")
-    print(f"export LLM_TEMPERATURE={config['llm']['temperature']}")
-    print(f"export LLM_TOP_P={config['llm']['top_p']}")
-    print(f"export LLM_MAX_TOKENS={config['llm']['max_tokens']}")
-    print(f"export API_BASE_PATH='{config['api']['base_path']}'")
-    print(f"export API_PORT={config['api']['port']}")
-    print(f"export STREAMLIT_PORT={config['streamlit']['port']}")
-    print(f"export DOCKER_REGISTRY='{config['docker']['registry']}'")
-    print(f"export DOCKER_TAG='{config['docker']['tag']}'")
-except KeyError as ke:
-    sys.stderr.write(f"Missing key in YAML: {ke}\n")
-except Exception as e:
-    sys.stderr.write(f"Error loading YAML: {e}\n")
-    print("# workshop-config.yaml error; no defaults exported. Populate workshop-config.yaml and re-run.")
+    with open(path, 'r') as f:
+        config = yaml.safe_load(f) or {}
+except Exception:
+    # Silent on missing/invalid YAML for programmatic use
+    raise SystemExit(0)
+
+oci = config.get('oci') or {}
+llm = config.get('llm') or {}
+api = config.get('api') or {}
+streamlit = config.get('streamlit') or {}
+docker = config.get('docker') or {}
+
+print(f"export OCI_SERVICE_ENDPOINT='{oci.get('service_endpoint','')}'")
+print(f"export OCI_AUTH_MODE='{oci.get('auth_mode','instance_principals')}'")
+print(f"export OCI_COMPARTMENT_OCID='{oci.get('compartment_ocid','')}'")
+print(f"export LLM_MODEL_ID='{llm.get('model_id','')}'")
+print(f"export LLM_TEMPERATURE={llm.get('temperature',0.7)}")
+print(f"export LLM_TOP_P={llm.get('top_p',0.9)}")
+print(f"export LLM_MAX_TOKENS={llm.get('max_tokens',2000)}")
+print(f"export API_BASE_PATH='{api.get('base_path','/api/v1')}'")
+print(f"export API_PORT={api.get('port',8010)}")
+print(f"export STREAMLIT_PORT={streamlit.get('port',8501)}")
+print(f"export DOCKER_REGISTRY='{docker.get('registry','')}'")
+print(f"export DOCKER_TAG='{docker.get('tag','latest')}'")
 EOF
-)"
+)" 2>/dev/null
   else
     echo "workshop-config.yaml not found in ${DEST}. A template will be created; populate it and re-run. No defaults exported."
     # No hard-coded defaults exported when YAML is missing.
@@ -1004,6 +1022,461 @@ fi
 
 echo "Memory bank setup complete."
 
+# --- First-go helpers (optional) ---
+open_ports() {
+  if systemctl is-active --quiet firewalld; then
+    sudo firewall-cmd --zone=public --add-port=8010/tcp --permanent || true
+    sudo firewall-cmd --zone=public --add-port=8501/tcp --permanent || true
+    sudo firewall-cmd --zone=public --add-port=8502/tcp --permanent || true
+    sudo firewall-cmd --reload || true
+    echo "firewalld ports opened (if available):"
+    sudo firewall-cmd --list-ports || true
+  else
+    echo "firewalld not active; skipping firewall-cmd"
+  fi
+  for p in 8010 8501 8502; do
+    sudo iptables -C INPUT -p tcp --dport "$p" -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p tcp --dport "$p" -j ACCEPT || true
+  done
+  echo "iptables INPUT dport rules added (if iptables present)."
+}
+
+warn_port_conflicts() {
+  local others
+  others="$(pgrep -fa 'streamlit run .*recipe-streamlit-app/app.py' | grep -v "${DEST}/recipe-streamlit-app" || true)"
+  if [[ -n "${others}" ]]; then
+    echo "WARNING: Other Streamlit instances detected which may occupy 8501/8502:"
+    echo "${others}"
+    echo "Tip to stop: kill <pid>   # verify the PID corresponds to an older project (e.g., lab3)"
+  fi
+}
+
+smoke_test() {
+  echo "----- First-go Smoke Test (bounded) -----"
+  set +e
+  echo "Process checks:"
+  pgrep -fa uvicorn || echo "uvicorn not found"
+  pgrep -fa streamlit || echo "streamlit not found"
+  echo
+
+  echo "Listening ports (8010/8501/8502):"
+  ss -ltnp | awk 'NR==1 || $4 ~ /:8010$|:8501$|:8502$/'
+  echo
+
+  # Detect active UI port (prefer 8501)
+  UI_PORT=""
+  for p in 8501 8502; do
+    ss -ltnp | grep -q ":$p" && UI_PORT="$p" && break
+  done
+  echo "UI_PORT=${UI_PORT:-none}"
+
+  # API readiness
+  echo
+  echo "API /ready (max 6s):"
+  curl -sS --max-time 6 http://localhost:${API_PORT:-8010}/ready | jq -c . || echo "API /ready failed"
+
+  # API sample GET /recipe
+  echo
+  echo "API sample GET /recipe (max 12s):"
+  curl -sS --max-time 12 "http://localhost:${API_PORT:-8010}${API_BASE_PATH:-/api/v1}/recipe?cuisine=Mexican&dietary=vegan" \
+    | jq '{ok:(.recipe!=null), ingredients_len: ((.ingredients // []) | length), products_preview: ((.products // []) | .[0:2] | map({displayName, price}))}' \
+    || echo "API sample failed"
+
+  # UI GET /
+  if [[ -n "${UI_PORT}" ]]; then
+    echo
+    echo "UI GET / (max 6s):"
+    code="$(curl -s -o /dev/null -w "%{http_code}" --max-time 6 "http://localhost:${UI_PORT}/")"
+    echo "http://localhost:${UI_PORT}/ -> ${code}"
+  fi
+
+  # External hint
+  PUB_IP="$(curl -s --max-time 3 https://ifconfig.me 2>/dev/null || printf '')"
+  echo
+  echo "Public IP: ${PUB_IP:-unknown}"
+  if [[ -n "${UI_PORT}" && -n "${PUB_IP}" ]]; then
+    echo "External UI HEAD hint:"
+    curl -sI --max-time 6 "http://${PUB_IP}:${UI_PORT}/" | head -n 1 || true
+  fi
+  echo "----- Smoke Test complete -----"
+  set -e
+}
+
+# Append First-Go Learnings (2025-12-08): Config Discovery + Run Modes
+# Ensure memory-bank has the latest guidance and mirror into .clinerules so first run works without tweaks.
+if [[ -d "${DEST}/memory-bank" ]]; then
+  cat >> "${DEST}/memory-bank/systemPatterns.md" << 'EOF'
+## Learnings 2025-12-08 — First‑Go Run Modes and Config Discovery
+
+Config discovery (backend):
+- The API config loader looks for workshop-config.yaml in this order:
+  1) $WORKSHOP_CONFIG_PATH (if set)
+  2) /app/config.yaml (containers)
+  3) Current working directory and up to 5 parents
+  4) The API package file location and up to 5 parents
+  5) ./workshop-config.yaml as a final fallback
+
+Implication:
+- You can run the API from the repo root:
+    .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT
+- Or from the recipe-api folder:
+    cd recipe-api
+    ../.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port $API_PORT
+- No extra env is required for local dev in either case.
+
+Run modes:
+- Fast verification (skip external product selection):
+    WOOL_TOTAL_TIMEOUT=0 .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT
+- Reasoning-enabled (bounded timeouts to avoid long waits):
+    export WOOL_REASON_MANDATORY=1
+    export WOOL_MAX_INGREDIENTS=1
+    export WOOL_TOPK=2
+    export WOOL_TIMEOUT=6
+    export WOOL_PER_ING_TIMEOUT=20
+    export WOOL_REASON_TIMEOUT=25
+    export WOOL_REASON_CONCURRENCY=1
+    export WOOL_REASON_TOPN=2
+    export WOOL_TOTAL_TIMEOUT=30
+    .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT
+
+Curl tests:
+- GET:
+    curl -s "http://localhost:$API_PORT$API_BASE_PATH/recipe?cuisine=Mexican&dietary=vegan" | jq
+- POST:
+    curl -s -X POST "http://localhost:$API_PORT$API_BASE_PATH/recipe" -H "Content-Type: application/json" -d '{"cuisine":"Thai","dietary":"gluten-free"}' | jq
+
+Notes:
+- Ensure httpx is installed in the venv (needed for Woolworths integration):
+    ./.venv/bin/python -c 'import httpx' 2>/dev/null || ./.venv/bin/pip install httpx
+- Use '&' in shell queries, not HTML-encoded '&'.
+EOF
+
+  cat >> "${DEST}/memory-bank/techContext.md" << 'EOF'
+## Learnings 2025-12-08 — Dev Run Quickstart
+
+- Run from repo root or recipe-api; config discovery is robust (no special env needed).
+- Fast mode (skip external products, immediate responses):
+    WOOL_TOTAL_TIMEOUT=0 .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT
+- Reasoning-enabled (bounded, non-heuristic):
+    export WOOL_REASON_MANDATORY=1
+    export WOOL_MAX_INGREDIENTS=1
+    export WOOL_TOPK=2
+    export WOOL_TIMEOUT=6
+    export WOOL_PER_ING_TIMEOUT=20
+    export WOOL_REASON_TIMEOUT=25
+    export WOOL_REASON_CONCURRENCY=1
+    export WOOL_REASON_TOPN=2
+    export WOOL_TOTAL_TIMEOUT=30
+    .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT
+- Dependency sanity:
+    ./.venv/bin/python -c 'import httpx' 2>/dev/null || ./.venv/bin/pip install httpx
+- Curl tests:
+    curl -s "http://localhost:$API_PORT$API_BASE_PATH/recipe?cuisine=Mexican&dietary=vegan" | jq
+    curl -s -X POST "http://localhost:$API_PORT$API_BASE_PATH/recipe" -H "Content-Type: application/json" -d '{"cuisine":"Thai","dietary":"gluten-free"}' | jq
+EOF
+
+  # Mirror updates into .clinerules for immediate enforcement (overwrite to ensure first-go)
+  mkdir -p "${DEST}/.clinerules"
+  cp -f "${DEST}/memory-bank/systemPatterns.md" "${DEST}/.clinerules/02-system-patterns.md" || true
+  cp -f "${DEST}/memory-bank/techContext.md" "${DEST}/.clinerules/03-tech-context.md" || true
+fi
+
+echo "Memory bank updated with first-go run learnings."
+
+# Append Woolworths Images/Prices run-mode learnings (2025-12-08)
+# Ensure memory-bank has the latest guidance and mirror into .clinerules so first run works without tweaks.
+if [[ -d "${DEST}/memory-bank" ]]; then
+  cat >> "${DEST}/memory-bank/systemPatterns.md" << 'EOF'
+## Learnings 2025-12-08 — Woolworths images/prices and selection mode
+
+- Do NOT run with WOOL_TOTAL_TIMEOUT=0 if you expect real product images/prices. That flag forces reasoning-only fallback and skips external selection.
+- Real selection run (bounded timeouts):
+  READY_SIGNER_TIMEOUT=0.3 \
+  WOOL_REASON_MANDATORY=1 \
+  WOOL_MAX_INGREDIENTS=1 \
+  WOOL_TOPK=2 \
+  WOOL_TIMEOUT=6 \
+  WOOL_PER_ING_TIMEOUT=20 \
+  WOOL_REASON_TIMEOUT=20 \
+  WOOL_TOTAL_TIMEOUT=30 \
+  .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT --reload
+
+- Optional: export WOOLWORTHS_STORE_ID=<storeId> to improve price availability.
+- Extractor image keys: SmallImageFile, MediumImageFile, LargeImageFile, ImageUrl/imageUrl, Thumbnail/ThumbnailURL, DetailsImagePaths (first).
+- Candidate ordering: prefer candidates with image, then with price, then lower price.
+- Curl test:
+  curl -s -X POST "http://localhost:$API_PORT$API_BASE_PATH/recipe" -H "Content-Type: application/json" -d '{"cuisine":"Mexican","dietary":"vegan"}' | jq '{products: ((.products // []) | .[0:3] | map({displayName, price, image}))}'
+EOF
+
+  cat >> "${DEST}/memory-bank/techContext.md" << 'EOF'
+## Learnings 2025-12-08 — Real selection vs reasoning-only
+
+- Reasoning-only quick check (no external selection, images/prices may be null by design):
+    WOOL_TOTAL_TIMEOUT=0 .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT
+- Real selection (images preferred, bounded timeouts):
+    READY_SIGNER_TIMEOUT=0.3 \
+    WOOL_REASON_MANDATORY=1 \
+    WOOL_MAX_INGREDIENTS=1 \
+    WOOL_TOPK=2 \
+    WOOL_TIMEOUT=6 \
+    WOOL_PER_ING_TIMEOUT=20 \
+    WOOL_REASON_TIMEOUT=20 \
+    WOOL_TOTAL_TIMEOUT=30 \
+    .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT --reload
+- To improve price fields:
+    export WOOLWORTHS_STORE_ID=3024  # example; use your store ID
+EOF
+
+  cat >> "${DEST}/memory-bank/woolworthsStandards.md" << 'EOF'
+## Learnings 2025-12-08 — Price and image availability
+
+- Images are provided on UI endpoints via fields like SmallImageFile/MediumImageFile/LargeImageFile/ImageUrl/DetailsImagePaths.
+- Prices may require a store context; set WOOLWORTHS_STORE_ID to retrieve store-level pricing when available.
+- The selector sorts candidates by presence of image first, then price presence, then lower price.
+- Do not set WOOL_TOTAL_TIMEOUT=0 when expecting images/prices; that path skips UI selection entirely.
+EOF
+
+  # Mirror updates into .clinerules for immediate enforcement (overwrite to ensure first-go)
+  mkdir -p "${DEST}/.clinerules"
+  cp -f "${DEST}/memory-bank/systemPatterns.md" "${DEST}/.clinerules/02-system-patterns.md" || true
+  cp -f "${DEST}/memory-bank/techContext.md" "${DEST}/.clinerules/03-tech-context.md" || true
+  cp -f "${DEST}/memory-bank/woolworthsStandards.md" "${DEST}/.clinerules/06-woolworths-service-standard.md" || true
+fi
+
+echo "Memory bank updated with Woolworths images/prices learnings."
+
+# Ensure Woolworths Hardening requirements (2025-12-10) are present and mirrored to .clinerules
+if [[ -d "${DEST}/memory-bank" ]]; then
+  if ! grep -q "Hardening requirements (2025-12-10)" "${DEST}/memory-bank/woolworthsStandards.md" 2>/dev/null; then
+    cat >> "${DEST}/memory-bank/woolworthsStandards.md" << 'EOF'
+## Hardening requirements (2025-12-10) — Non-negotiable extractor/selector behavior
+
+These rules prevent first-run null image/price issues and ensure stable product selection.
+
+1) Product flattening — recursive, no early return
+- Recursively traverse the entire payload and collect dict nodes that contain ANY of:
+  DisplayName, displayName, Name, Description, UnitPrice, Price, ImageUrl, imageUrl, DetailsImagePaths, Images.
+- Do NOT stop at the first "Products" array; nested {"Products":[{"Products":[...]}]} wrappers are common.
+
+2) Image normalization and discovery
+- Prefer LargeImageFile / LargeImageUrl when present.
+- Fallbacks (in order): ImageUrl/imageUrl, MediumImageFile, SmallImageFile/SmallImageUrl, Thumbnail/ThumbnailURL, first from DetailsImagePaths/Images.
+- Normalize protocol-relative and site-root paths:
+  - //cdn… -> https://cdn…
+  - /content/wowproductimages/... -> https://www.woolworths.com.au/content/wowproductimages/…
+- Promote small/medium path segments to large (replace /small|/medium/ with /large/).
+- Include a recursive image URL finder that accepts http(s), protocol-relative (//), and site-root (/) paths anywhere in the product dict/list.
+
+3) Price parsing — nested and robust
+- Accept numeric values or strings such as "$12.00" (strip symbols and commas).
+- Scan nested dict/list structures for any of:
+  Price, UnitPrice, UnitPriceValue, RetailPrice, CupPrice, InstorePrice, value, amount.
+- Treat zero or <= 0 as missing (None). As a last resort, scan the entire product dict.
+
+4) Brand-bucket filtering and candidate gating
+- Drop brand-bucket entries: explicit "Brand"/"Brands" and short non-product labels (≤ 2 tokens, no units/keywords, and no digits).
+- Keep candidates only if they have either an image OR a numeric price.
+- Sort candidates by: has image (desc), has price (desc), then lower price.
+
+5) AU term cleaning additions
+- Extend synonyms with:
+  - yogurt -> yoghurt
+  - ground chicken -> chicken mince
+- Maintain existing mappings (capsicum, coriander, spring onion, rocket, beef mince, plain flour, icing sugar, bicarb soda, cornflour, wholemeal, …).
+
+6) Operational requirements for real prices/images
+- Do NOT set WOOL_TOTAL_TIMEOUT=0 if you expect images/prices (that path skips selection).
+- Set a store context to improve price availability:
+  export WOOLWORTHS_STORE_ID=<storeId>
+- Recommended bounded run for realistic selection:
+
+  READY_SIGNER_TIMEOUT=0.3 \
+  WOOL_REASON_MANDATORY=1 \
+  WOOL_MAX_INGREDIENTS=3 \
+  WOOL_TOPK=2 \
+  WOOL_TIMEOUT=6 \
+  WOOL_PER_ING_TIMEOUT=20 \
+  WOOL_REASON_TIMEOUT=20 \
+  WOOL_REASON_CONCURRENCY=1 \
+  WOOL_REASON_TOPN=2 \
+  WOOL_TOTAL_TIMEOUT=30 \
+  .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port "$API_PORT" --reload
+
+7) Verification snippet (copy/paste)
+- GET preview:
+  curl -s "http://localhost:$API_PORT$API_BASE_PATH/recipe?cuisine=Mexican&dietary=vegan" \
+    | jq '{ingredients_len:(.ingredients|length), products_preview: ((.products // []) | .[0:3] | map({displayName, price, image}))}'
+- POST preview:
+  curl -s -X POST "http://localhost:$API_PORT$API_BASE_PATH/recipe" -H "Content-Type: application/json" \
+    -d '{"cuisine":"Italian","dietary":"vegetarian"}' \
+    | jq '{ingredients_len:(.ingredients|length), products_preview: ((.products // []) | .[0:3] | map({displayName, price, image}))}'
+
+## Common pitfalls and triage
+- Null price: set WOOLWORTHS_STORE_ID; ensure price parser scans nested structures; treat zero as None.
+- Null image: ensure recursive image discovery and URL normalization; promote small/medium to large; require image OR price to pass.
+- No products: verify term cleaning (AU synonyms) and ensure flattening recurses through nested Products wrappers.
+- Selection skipped: WOOL_TOTAL_TIMEOUT set to 0 (disable for real products).
+- Curl queries: ensure shell ampersand (&) is not HTML-encoded (&).
+EOF
+  fi
+  # Mirror hardened woolworths standards into .clinerules unconditionally
+  mkdir -p "${DEST}/.clinerules"
+  cp -f "${DEST}/memory-bank/woolworthsStandards.md" "${DEST}/.clinerules/06-woolworths-service-standard.md" || true
+fi
+
+# Append Streamlit UI learnings (2025-12-09): image sizing, deprecations, and 2-column layouts
+if [[ -d "${DEST}/memory-bank" ]]; then
+  cat >> "${DEST}/memory-bank/streamlitStandards.md" << 'EOF'
+## Learnings 2025-12-09 — Streamlit images and layout
+
+Deprecation notice:
+- Streamlit is removing use_container_width/use_column_width. Prefer:
+  - st.image(..., width='stretch') for container-wide rendering, or
+  - A fixed pixel width (e.g., width=360) for consistent card sizing across rows.
+
+Woolworths product images:
+- Prefer LargeImage URLs (LargeImageFile/LargeImageUrl) when available. If upstream returns /small/ or /medium/ paths, promote to /large/ before rendering.
+- Constrain render size so images don’t dominate the page. Recommended default for product cards: width=360.
+
+Suggestions placement and grid:
+- Move the “Suggestions” section to the bottom of the page (below recipe and cart).
+- Render product suggestions two cards per row using st.columns(2):
+  ```python
+  def render_card(idx: int, p: dict) -> None:
+      img = prefer_large(p.get("image"))
+      if img:
+          st.image(img, width=360)
+      st.markdown(f"**{p.get('displayName','Product')}**")
+      price = p.get("price")
+      st.caption(f"Price: {f'${price:.2f}' if isinstance(price,(float,int)) else '—'}")
+      reason = normalize_reasoning(p.get("reasoning"))
+      if reason:
+          with st.expander("Reasoning", expanded=False):
+              st.write(reason)
+      if st.button("Add to cart", key=f"add_{idx}"):
+          st.session_state.cart.append({"name": p.get("displayName") or "Product", "price": price, "image": img, "source": "product"})
+
+  for i in range(0, len(products), 2):
+      cols = st.columns(2)
+      with cols[0]:
+          render_card(i, products[i])
+      if i + 1 < len(products):
+          with cols[1]:
+              render_card(i + 1, products[i + 1])
+  ```
+
+Ingredients layout:
+- Show ingredient chips in two columns:
+  ```python
+  cols = st.columns(2)
+  for idx, ing in enumerate(ingredients):
+      with cols[idx % 2]:
+          if st.button(ing, key=f"ing_{idx}"):
+              st.session_state.cart.append({"name": ing, "source": "ingredient"})
+  ```
+
+Cart placement:
+- Keep the cart in the right column of the main layout; suggestions remain at the bottom of the page for a clear reading flow.
+
+Sidebar UX:
+- Always include "API Base URL" with a “Test API” button that calls /health (derived from host:port without base path).
+
+Recommended defaults:
+- IMAGE_WIDTH_SUGGESTION=360  # adjust for theme/card layout
+- Promote /small|/medium to /large in Woolworths image URLs when possible
+EOF
+
+  # Mirror updates into .clinerules for enforcement
+  mkdir -p "${DEST}/.clinerules"
+  cp -f "${DEST}/memory-bank/streamlitStandards.md" "${DEST}/.clinerules/07-streamlit-app-standard.md" || true
+fi
+
+# Append Systemd Quick Setup (2025-12-09): concise prompt to create/enable/start services
+if [[ -d "${DEST}/memory-bank" ]]; then
+  cat >> "${DEST}/memory-bank/systemdStandards.md" << 'EOF'
+## Quick Setup (2025-12-09) — Systemd services for API and Streamlit (Oracle Linux)
+
+Friendly prompt (copy/paste). Uses your current project directory as WorkingDirectory, prefers .venv if present, starts on boot, and restarts on failure.
+
+```bash
+# 1) Set project path and default ports
+export PROJECT_DIR="$(pwd)"
+export API_PORT="${API_PORT:-8010}"
+export STREAMLIT_PORT="${STREAMLIT_PORT:-8501}"
+
+# 2) Create unit: recipe-api.service (FastAPI via uvicorn)
+sudo tee /etc/systemd/system/recipe-api.service >/dev/null <<'UNIT'
+[Unit]
+Description=Recipe API (FastAPI / uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=opc
+WorkingDirectory=$PROJECT_DIR
+EnvironmentFile=-$PROJECT_DIR/.env
+Environment=API_PORT=${API_PORT}
+Environment=UVICORN_WORKERS=2
+ExecStart=/usr/bin/bash -lc 'PY=$([ -x .venv/bin/python ] && echo .venv/bin/python || command -v python3); exec "$PY" -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port "${API_PORT:-8010}" --workers "${UVICORN_WORKERS:-2}"'
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# 3) Create unit: recipe-streamlit.service (Streamlit UI)
+sudo tee /etc/systemd/system/recipe-streamlit.service >/dev/null <<'UNIT'
+[Unit]
+Description=Recipe Streamlit UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=opc
+WorkingDirectory=$PROJECT_DIR
+EnvironmentFile=-$PROJECT_DIR/.env
+Environment=STREAMLIT_PORT=${STREAMLIT_PORT}
+ExecStart=/usr/bin/bash -lc 'PY=$([ -x recipe-streamlit-app/.venv-ui/bin/python ] && echo recipe-streamlit-app/.venv-ui/bin/python || command -v python3); exec "$PY" -m streamlit run recipe-streamlit-app/app.py --server.port="${STREAMLIT_PORT:-8501}" --server.headless=true'
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# 4) Reload, enable on boot, stop any dev listeners, and start services
+sudo systemctl daemon-reload
+sudo systemctl enable recipe-api.service recipe-streamlit.service
+sudo fuser -k "${API_PORT}"/tcp >/dev/null 2>&1 || true
+sudo fuser -k "${STREAMLIT_PORT}"/tcp >/dev/null 2>&1 || true
+sudo systemctl start recipe-api.service
+sudo systemctl start recipe-streamlit.service
+
+# 5) Verify and tail logs
+systemctl status --no-pager recipe-api.service
+systemctl status --no-pager recipe-streamlit.service
+sudo journalctl -u recipe-api.service -f
+# In another shell:
+sudo journalctl -u recipe-streamlit.service -f
+```
+
+Notes
+- ExecStart auto-detects a Python venv if present (.venv for API, recipe-streamlit-app/.venv-ui for UI).
+- WorkingDirectory is your current project folder; edit the units if you move the project.
+- Restart=always and WantedBy=multi-user.target are set to start on boot and auto-restart on failure.
+EOF
+
+  # Mirror into .clinerules for enforcement
+  mkdir -p "${DEST}/.clinerules"
+  cp -f "${DEST}/memory-bank/systemdStandards.md" "${DEST}/.clinerules/09-systemd-services.md" || true
+fi
+
 # -----------------------------------------------------------------------------
 # Mirror memory bank into .clinerules and aggregate AGENTS.md
 # -----------------------------------------------------------------------------
@@ -1191,6 +1664,17 @@ else
 fi
 
 
+# Optional networking and port hygiene
+if [[ "${OPEN_PORTS}" -eq 1 ]]; then
+  open_ports
+fi
+if [[ -n "${VERBOSE:-}" ]]; then
+  warn_port_conflicts
+fi
+if [[ "${RUN_TESTS}" -eq 1 ]]; then
+  smoke_test
+fi
+
 echo "Workshop pack setup complete."
 
 : "${VERBOSE:=}"
@@ -1257,6 +1741,20 @@ echo "  # A Debug expander displays the raw API payload for verification."
 echo ""
 echo "After building the API, ensure dependencies (includes httpx) are installed:"
 echo "  pip install -r recipe-api/requirements.txt"
+echo "  # Ensure httpx is present for Woolworths service (async search):"
+echo "  ./.venv/bin/python -c 'import httpx' 2>/dev/null || ./.venv/bin/pip install httpx"
+echo ""
+echo "First run stability tips (Learning 2025-12-08):"
+echo "  - Start uvicorn WITHOUT --reload to catch import errors deterministically:"
+echo "      .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT"
+echo "    Once imports succeed, you can add --reload for dev."
+echo "  - For quick verification, skip external product selection to avoid long waits:"
+echo "      WOOL_TOTAL_TIMEOUT=0 .venv/bin/python -m uvicorn recipe-api.app.main:app --host 0.0.0.0 --port $API_PORT"
+echo "    Then re-enable selection with bounded timeouts:"
+echo "      export WOOL_MAX_INGREDIENTS=2 WOOL_TOPK=2 WOOL_TIMEOUT=3 WOOL_PER_ING_TIMEOUT=8 WOOL_REASON_TIMEOUT=4 WOOL_TOTAL_TIMEOUT=8"
+echo "  - Readiness must never block: signer is probed with a short timeout (READY_SIGNER_TIMEOUT, default 0.3s)."
+echo "  - Curl tip: use '&' in query strings, not HTML-encoded '&'."
+echo "  - If a previous dev server is bound to the port, free it: fuser -k $API_PORT/tcp"
 
 echo ""
 echo "---------------------------------------------"

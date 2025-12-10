@@ -488,8 +488,9 @@
             }
           });
 
-          // Add copy buttons to CLI blocks after DOM is ready
+          // Add copy buttons to CLI and Prompt blocks after DOM is ready
           document.addEventListener('DOMContentLoaded', () => {
+            // CLI code blocks
             document.querySelectorAll('pre.cli').forEach((pre) => {
               // Capture the original code BEFORE appending the button so the button label isn't copied
               const original = pre.textContent;
@@ -511,6 +512,48 @@
                 }
               });
               pre.appendChild(btn);
+            });
+
+            // Prompt text blocks (.prompt.phase)
+            document.querySelectorAll('.prompt.phase').forEach((block) => {
+              // Compute copy payload EXCLUDING the header paragraph that contains "Copy and paste this prompt..."
+              let payload = '';
+              const strongEl = block.querySelector('p strong');
+              const headerP = strongEl ? strongEl.closest('p') : null;
+              if (headerP) {
+                const parts = [];
+                let n = headerP.nextSibling;
+                while (n) {
+                  if (n.nodeType === Node.ELEMENT_NODE) {
+                    parts.push(n.innerText || '');
+                  } else if (n.nodeType === Node.TEXT_NODE) {
+                    parts.push(n.textContent || '');
+                  }
+                  n = n.nextSibling;
+                }
+                payload = parts.join('\n').trim();
+              } else {
+                payload = (block.innerText || '').trim();
+              }
+
+              const btn = document.createElement('button');
+              btn.className = 'copy-btn';
+              btn.type = 'button';
+              btn.textContent = 'Copy';
+              btn.setAttribute('aria-label', 'Copy prompt');
+              btn.addEventListener('click', async () => {
+                try {
+                  await navigator.clipboard.writeText(payload);
+                  const prev = btn.textContent;
+                  btn.textContent = 'Copied!';
+                  setTimeout(() => (btn.textContent = prev), 1200);
+                } catch {
+                  const prev = btn.textContent;
+                  btn.textContent = 'Copy failed';
+                  setTimeout(() => (btn.textContent = prev), 1200);
+                }
+              });
+              block.appendChild(btn);
             });
           });
         </script>
