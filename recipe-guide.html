@@ -1177,13 +1177,13 @@ chmod 600 ~/.oci/KEY.pem ~/.oci/KEY.pub</pre>
               <li>If port 8050 is busy: <code>python recipe-dash-app/app.py --port 8051</code></li>
               <li>Generate a recipe; ensure state persists and the Debug API Output panel shows raw JSON.</li>
             </ul>
-            <div class="tip">
-              <strong>View the Dash app from your laptop:</strong> Since the app runs on an Oracle Linux VM terminal, use SSH port forwarding from your local machine:
-              <pre class="cli">ssh -L 8051:localhost:8051 opc@OCI-Devops</pre>
-              Then open <code>http://localhost:8051/</code> in your local browser. If your app is running on 8050 instead, forward <code>8050:localhost:8050</code>.
-            </div>
           </div>
         </details>
+        <div class="tip">
+          <strong>View the Dash app from your laptop:</strong> Since the app runs on an Oracle Linux VM terminal, use SSH port forwarding from your local machine:
+          <pre class="cli">ssh -L 8051:localhost:8051 opc@OCI-Devops</pre>
+          Then open <code>http://localhost:8051/</code> in your local browser. If your app is running on 8050 instead, forward <code>8050:localhost:8050</code>.
+        </div>
         <div class="tip">
           <strong>Success criteria:</strong> Run python recipe-dash-app/app.py; generate recipes, verify state persists (last recipe, cart), and confirm the Debug API Output panel shows the raw JSON response.
         </div>
