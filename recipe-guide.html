@@ -305,7 +305,17 @@
   @media (max-width: 768px){
     #presenter-toolbar { left: 12px; right: 12px; justify-content: center; }
   }
-    .credits-muted{ text-align:center; color: var(--muted); font-size: 12px; margin: 24px 0 0; }
+    .credits-muted{
+      text-align:center;
+      color: var(--muted);
+      font-size: 13px;
+      margin: 32px 0 0;
+      padding-top: 12px;
+      border-top: 1px dashed var(--ring);
+    }
+    .credits-muted i { margin: 0 4px 0 8px; color: var(--muted); }
+    .credits-muted a { color: var(--muted); text-decoration: none; }
+    .credits-muted a:hover { color: var(--primary-600); text-decoration: underline; }
   </style>
   <script src="https://unpkg.com/mermaid@9.4.3/dist/mermaid.min.js"></script>
   <script>
@@ -1640,9 +1650,13 @@ allow dynamic-group <DYN_GROUP_NAME> to read repos in tenancy</pre>
         </details>
 
         <div id="credits" class="credits-muted" aria-label="Credits">
-          Workshop & Guide by Barjinder Singh •
-          <a href="mailto:mail.barjinder@gmail.com">mail.barjinder@gmail.com</a> •
+          <span>Workshop & Guide by Barjinder Singh</span>
+          <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+          <a href="mailto:mail.barjinder@gmail.com" aria-label="Email Barjinder">mail.barjinder@gmail.com</a>
+          <i class="fa-solid fa-link" aria-hidden="true"></i>
           <a href="https://fluffyclouds.blog" target="_blank" rel="noopener">fluffyclouds.blog</a>
+          <i class="fa-brands fa-linkedin" aria-hidden="true"></i>
+          <a href="https://www.linkedin.com/in/barjinder-singh-48357555/" target="_blank" rel="noopener">LinkedIn</a>
         </div>
 
       </div>
