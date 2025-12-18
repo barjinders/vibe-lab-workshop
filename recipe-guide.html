@@ -306,6 +306,77 @@
     #presenter-toolbar { left: 12px; right: 12px; justify-content: center; }
   }
   </style>
+  <script src="https://unpkg.com/mermaid@9.4.3/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'loose',
+      theme: 'base',
+      flowchart: {
+        htmlLabels: true,
+        curve: 'basis',
+        diagramPadding: 20
+      },
+      themeVariables: {
+        clusterBkg: '#fff8dc',
+        clusterBorder: '#e5e7eb'
+      },
+      themeCSS: `
+        /* Flowing data animation: Moving dashes on ALL edges to simulate streaming data */
+        .edgePaths path {
+          stroke-dasharray: 10 5;
+          stroke-linecap: round;
+          animation: dataFlow 1.5s linear infinite;
+        }
+        @keyframes dataFlow {
+          to { stroke-dashoffset: -15; }
+        }
+
+        /* Pulsing arrowheads and edges for direction and activity */
+        marker path {
+          animation: pulse 1.5s ease-in-out infinite;
+          fill: currentColor;
+        }
+        .edgePaths .edgeLabel {
+          animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.6; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        /* Subtle node pulsing to show data processing */
+        .node rect, .node circle, .node ellipse {
+          rx: 8; ry: 8;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+          animation: nodePulse 3s ease-in-out infinite;
+        }
+        @keyframes nodePulse {
+          0%, 100% { opacity: 0.9; }
+          50% { opacity: 1; }
+        }
+
+        /* Optional/dashed lines get slower, dotted flow for contrast */
+        .edgePath[stroke-dasharray='5,5'] path {
+          stroke-dasharray: 8 4 !important;
+          animation-duration: 3s !important;
+        }
+
+        /* Subgraph cluster backgrounds (light yellow boxes) */
+        .cluster rect {
+          fill: #fff8dc !important;
+          fill-opacity: 1 !important;
+          stroke: #e5e7eb !important;
+          stroke-width: 1.5px !important;
+          rx: 8; ry: 8;
+        }
+        .cluster text, .cluster tspan {
+          fill: #374151 !important;
+          font-weight: 600;
+        }
+      `
+    });
+  </script>
 </head>
 <body>
   <div id="presenter-toolbar" aria-label="Presenter controls">
@@ -322,12 +393,11 @@
           <li><a href="#phase-2"><i class="fas fa-plus-circle"></i> Phase 2 — Add features</a></li>
           <li><a href="#phase-3"><i class="fas fa-list"></i> Phase 3 — Extract ingredients</a></li>
           <li><a href="#phase-4"><i class="fas fa-shopping-cart"></i> Phase 4 — Add Woolworths products</a></li>
-          <li><a href="#phase-5"><i class="fas fa-desktop"></i> Phase 5 — Build the Streamlit web app</a></li>
+          <li><a href="#phase-5"><i class="fas fa-desktop"></i> Phase 5 — Build the Plotly Dash web app</a></li>
           <li><a href="#phase-6"><i class="fas fa-sync-alt"></i> Phase 6 — Run as systemd services</a></li>
           <li><a href="#phase-7"><i class="fas fa-plug"></i> Phase 7 — Create a Local MCP Server for Recipe API</a></li>
           <li><a href="#phase-8"><i class="fas fa-tools"></i> Phase 8 — [Optional] Advanced Integrations</a></li>
           <li><a href="#phase-9"><i class="fas fa-check-double"></i> Phase 9 — End-to-end validation</a></li>
-          <li><a href="#troubleshooting"><i class="fas fa-tools"></i> Troubleshooting Prompts</a></li>
           <li><a href="#appendix"><i class="fas fa-book"></i> Appendix</a></li>
         </ul>
       </nav>
@@ -353,7 +423,7 @@
               <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
               <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 4: Woolworths + LLM</div>
               <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
-              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 5: Streamlit UI</div>
+              <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 5: Dash UI</div>
               <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
               <div style="flex: 1; text-align: center; padding: 8px; background: #e0f2fe; border-radius: 6px;">Phase 6: Systemd Services</div>
               <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
@@ -385,8 +455,149 @@
         <p class="muted">High-level view of the components and how they connect across the workshop phases.</p>
         <div class="box" style="text-align:center">
           <div><strong>Conceptual Architecture</strong></div>
-          <img src="https://objectstorage.ap-sydney-1.oraclecloud.com/p/jAMurpHsj5xKwCTZCXFabuEKgn6iDrxu968pD_mZWjyRMUpLjwQbgn0aOTLJVx59/n/idjhqglymefr/b/documents/o/workshop.png" alt="Conceptual Architecture Diagram" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px" />
-          <div class="muted">Conceptual Architecture • Image source: OCI Object Storage (PAR)</div>
+          <div class="mermaid" style="max-width:100%;overflow:auto;border:1px solid #e5e7eb;border-radius:6px;padding:12px;">
+
+%%{init: {
+  "theme": "base",
+  "flowchart": { 
+    "htmlLabels": false, 
+    "curve": "basis",
+    "diagramPadding": 20
+  },
+  "themeVariables": {
+    "clusterBkg": "#fff8dc",
+    "clusterBorder": "#e5e7eb"
+  },
+  "themeCSS": "
+    /* Flowing data animation: Moving dashes on ALL edges to simulate streaming data */
+    .edgePaths path {
+      stroke-dasharray: 10 5;
+      stroke-linecap: round;
+      animation: dataFlow 1.5s linear infinite;
+    }
+    @keyframes dataFlow {
+      to { stroke-dashoffset: -15; }
+    }
+
+    /* Pulsing arrowheads and edges for direction and activity */
+    marker path {
+      animation: pulse 1.5s ease-in-out infinite;
+      fill: currentColor;
+    }
+    .edgePaths .edgeLabel {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    /* Subtle node pulsing to show data processing */
+    .node rect, .node circle, .node ellipse {
+      rx: 8; ry: 8;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+      animation: nodePulse 3s ease-in-out infinite;
+    }
+    @keyframes nodePulse {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 1; }
+    }
+
+    /* Optional/dashed lines get slower, dotted flow for contrast */
+    .edgePath[stroke-dasharray='5,5'] path {
+      stroke-dasharray: 8 4 !important;
+      animation-duration: 3s !important;
+    }
+
+        /* Subgraph cluster backgrounds (light yellow boxes) */
+        .cluster rect {
+          fill: #fff8dc !important; /* soft yellow */
+          fill-opacity: 1 !important;
+          stroke: #e5e7eb !important;
+          stroke-width: 1.5px !important;
+          rx: 8; ry: 8;
+        }
+        .cluster text, .cluster tspan {
+          fill: #374151 !important; /* dark gray label text */
+          font-weight: 600;
+        }
+  "
+}}%%
+
+flowchart LR
+  %% --- Client / Developer side ---
+  subgraph CLIENT["Client / Developer"]
+    DL[Dev Laptop]
+    MCP[Local MCP Server]
+    Web[Web Interface]
+    Postman[API Access - Postman]
+  end
+
+  %% --- OCI side ---
+  subgraph OCI["What's for Dinner? - OCI"]
+    App[Oracle Linux DevOps Server\nFastAPI + Plotly Dash]
+    LB[OCI Load Balancer]
+    APIGW[OCI API Gateway]
+
+    subgraph OPT["Optional Containerized Configuration"]
+      Repo[OCI Projects\nCode Repository]
+      OCR[OCI Container Registry]
+      DashC[Dash Container\nPrivate IP]
+      APIC[API Container\nPrivate IP]
+    end
+  end
+
+  %% --- External services ---
+  subgraph EXT["External Services"]
+    Wool[Woolworths API Endpoint]
+    GenAI[Gen AI Endpoint - US]
+  end
+
+  %% --- Primary flows (solid lines: fast data flow) ---
+  DL -- VS Code --> App
+  App -- Dash --> LB
+  App -- FastAPI --> APIGW
+  Web --> LB
+  Postman --> APIGW
+
+  %% --- Client connections ---
+  DL --> Web
+  DL --> Postman
+  DL -. optional .-> MCP
+
+  %% --- Optional flows (dashed: slower, intermittent flow) ---
+  App -. optional .-> Repo
+  Repo -.-> OCR
+  OCR -.-> DashC
+  OCR -.-> APIC
+  LB -.-> DashC
+  APIGW -.-> APIC
+
+  %% --- External calls (dashed: API requests/responses) ---
+  App -. API calls .-> Wool
+  App -. API calls .-> GenAI
+
+  %% --- Styling for node groups (white fills with colored borders for clarity) ---
+  classDef client fill:#FFFFFF,stroke:#1565C0,stroke-width:3px,color:#1a1a1a;
+  classDef app fill:#FFFFFF,stroke:#C2185B,stroke-width:3px,color:#1a1a1a;
+  classDef infra fill:#FFFFFF,stroke:#2E7D32,stroke-width:3px,color:#1a1a1a;
+  classDef optional fill:#FFFFFF,stroke:#00838F,stroke-width:3px,color:#1a1a1a;
+  classDef external fill:#FFFFFF,stroke:#424242,stroke-width:3px,color:#1a1a1a;
+
+  class DL,MCP,Web,Postman client
+  class App app
+  class LB,APIGW infra
+  class Repo,OCR,DashC,APIC optional
+  class Wool,GenAI external
+
+  %% --- Subgraph styles (force yellow backgrounds) ---
+  style CLIENT fill:#fff8dc,stroke:#e5e7eb,stroke-width:1.5px
+  style OCI fill:#fff8dc,stroke:#e5e7eb,stroke-width:1.5px
+  style OPT fill:#fff8dc,stroke:#e5e7eb,stroke-width:1.5px
+  style EXT fill:#fff8dc,stroke:#e5e7eb,stroke-width:1.5px
+
+          </div>
+          <div class="muted">Conceptual Architecture • Interactive Mermaid diagram</div>
         </div>
         <div class="box" style="text-align:center">
           <div><strong>Physical Architecture</strong></div>
@@ -404,7 +615,7 @@
             <li><a href="#phase-2"><i class="fas fa-plus-circle"></i> Phase 2 — Add features</a></li>
             <li><a href="#phase-3"><i class="fas fa-list"></i> Phase 3 — Extract ingredients</a></li>
             <li><a href="#phase-4"><i class="fas fa-shopping-cart"></i> Phase 4 — Add Woolworths products</a></li>
-            <li><a href="#phase-5"><i class="fas fa-desktop"></i> Phase 5 — Build the Streamlit web app</a></li>
+            <li><a href="#phase-5"><i class="fas fa-desktop"></i> Phase 5 — Build the Plotly Dash web app</a></li>
             <li><a href="#phase-6"><i class="fas fa-sync-alt"></i> Phase 6 — Run as systemd services</a></li>
             <li><a href="#phase-7"><i class="fas fa-plug"></i> Phase 7 — Create a Local MCP Server for Recipe API</a></li>
             <li><a href="#phase-8"><i class="fas fa-tools"></i> Phase 8 — [Optional] Advanced Integrations: Containers, CI, API Gateway, and Load Balancer</a></li>
@@ -560,7 +771,7 @@
 
         <div id="pre-requisites">
           <h2>Pre‑requisites (Complete before the workshop)</h2>
-        <div class="warn">To ensure a smooth, hands-on session, please complete the following pre‑requisites before the workshop. I will share the project details in a separate email.</div>
+        <div class="warn">To ensure a smooth, hands-on session, please complete the following pre‑requisites before the workshop.</div>
 
         <h3>Step 1/7: Install VS Code and Remote – SSH</h3>
         <ul>
@@ -643,18 +854,51 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
           <li>VS Code should auto-install the server on first connect</li>
         </ul>
 
-        <h3>Step 6/7: Oracle Code Assist access and installation</h3>
-        <ul>
-          <li>Install via VSIX in your Remote – SSH session: Command Palette (Ctrl/Cmd+Shift+P) → “Extensions: Install from VSIX…”.</li>
-          <li>Browse to <code>/home/opc/octo-0.0.25.vsix</code> on the remote VM and install. Reload VS Code when prompted.</li>
-          <li>Verify the extension is installed in the remote session (Extensions panel).</li>
-        </ul>
 
-        <h3>Step 7/7: Install and configure Cline in VS Code</h3>
+        <h3>Step 6/7: Install and configure Cline in VS Code</h3>
         <ul>
           <li>In VS Code (Remote – SSH session), open Extensions (Ctrl/Cmd+Shift+X) and search for “Cline”. Install the “Cline” extension from the Marketplace.</li>
           <li>On first run, when prompted to choose a provider, select “Oracle Code Assist” as the API provider.</li>
           <li>Sign in using your existing Oracle customer account (non‑employee) and complete the sign‑in flow.</li>
+        </ul>
+
+        <h3>Step 7/7 (Optional): Configure OCI DevOps Git access (SSH or HTTPS)</h3>
+        <ul>
+          <li>This step is only required if you plan to attempt Phase 8 → “Optional (10–15 min): OCI DevOps Integration — Create Project, Repo, and Push Code”.</li>
+          <li>In OCI Console, add your public SSH key to your User Profile for DevOps Code Repositories.</li>
+          <li>Update your local SSH config at <code>~/.ssh/config</code> with your DevOps host and key. Example:</li>
+        </ul>
+        <details class="collapsible">
+          <summary><strong>How to add your key in OCI Console (User Settings)</strong></summary>
+          <ul>
+            <li>In OCI Console, click your profile avatar (top-right) → <strong>User Settings</strong>.</li>
+            <li>Navigate to <strong>Tokens and keys</strong> → <strong>API Keys</strong> → <strong>Add API Key</strong>.</li>
+            <li>Choose <strong>Upload public key</strong> and paste the contents of your public key file (e.g., <code>~/.oci/KEY.pub</code> or <code>~/.oci/KEY_public.pem</code>).</li>
+            <li>Save. Optionally copy the fingerprint for your records.</li>
+            <li>Alternative for Git over SSH: you can also use <strong>SSH Keys</strong> → <strong>Add Public Key</strong> in User Settings.</li>
+          </ul>
+          <div class="box">
+            <strong>Create a key pair locally (if you don't already have one)</strong>
+            <pre class="cli"># Generate a 4096-bit RSA private key in PEM format (no passphrase for automation)
+ssh-keygen -t rsa -b 4096 -m PEM -f ~/.oci/KEY.pem -N ""
+# Derive OpenSSH public key to upload to OCI
+ssh-keygen -y -f ~/.oci/KEY.pem > ~/.oci/KEY.pub
+# Lock down permissions
+chmod 600 ~/.oci/KEY.pem ~/.oci/KEY.pub</pre>
+          </div>
+          <div class="tip">
+            <strong>HTTPS alternative:</strong> If you prefer HTTPS, go to <em>User Settings → Auth Tokens</em>, click <em>Generate Token</em>, and use that token as the password when pushing over HTTPS.
+          </div>
+        </details>
+        <pre class="cli">Host devops.scmservice.*.oci.oraclecloud.com
+  User demouser@demodomain.com@demotenancy
+  IdentityFile /Users/demouser/.oci/KEY.pem
+  IdentitiesOnly yes
+  ServerAliveInterval 60
+  ServerAliveCountMax 3</pre>
+        <ul>
+          <li>Git push can use SSH (with the key above) or HTTPS with an OCI Auth Token.</li>
+          <li>For HTTPS, generate an Auth Token in OCI Console → Profile → Auth Tokens and use it as the password when prompted.</li>
         </ul>
 
         <h3>Verification checklist (please complete before the workshop)</h3>
@@ -662,7 +906,6 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
           <li><label><input type="checkbox" /> I can SSH into the OCI instance without errors using: <code>ssh OCI-Devops</code></label></li>
           <li><label><input type="checkbox" /> I can open the OCI host in VS Code via Remote – SSH and see a remote terminal</label></li>
           <li><label><input type="checkbox" /> Python 3 and Git are installed on the OCI host</label></li>
-          <li><label><input type="checkbox" /> Oracle Code Assist is installed in VS Code (remote session) and I have entitlements</label></li>
           <li><label><input type="checkbox" /> Cline is installed/configured per guidance and approved for use</label></li>
         </ul>
         <div class="tip">
@@ -679,12 +922,12 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
           <li><strong>.clinerules/</strong>: the workshop “house rules” Cline follows to keep results consistent</li>
           <li><strong>workshop-config.yaml</strong>: your environment settings (like endpoints, ports, and IDs)</li>
         </ul>
-        <p><strong>Download setup script:</strong> <a href="https://raw.githubusercontent.com/barjinders/vibe-lab-workshop/master/setup_workshop_pack_ip_setup.sh" target="_blank" rel="noopener">setup_workshop_pack_ip_setup.sh (from GitHub repo)</a></p>
+        <p><strong>Download setup script:</strong> <a href="https://raw.githubusercontent.com/barjinders/vibe-lab-workshop/master/setup_ws_dash.sh" target="_blank" rel="noopener">setup_ws_dash.sh (from GitHub repo)</a></p>
         <pre class="cli">mkdir lab3</pre>
         <pre class="cli">cd lab3</pre>
-        <pre class="cli">curl -fsSL -o setup_workshop_pack_ip_setup.sh https://raw.githubusercontent.com/barjinders/vibe-lab-workshop/master/setup_workshop_pack_ip_setup.sh</pre>
-        <pre class="cli">chmod +x ./setup_workshop_pack_ip_setup.sh</pre>
-        <pre class="cli">./setup_workshop_pack_ip_setup.sh -f   # -f to overwrite existing scaffolding if needed</pre>
+        <pre class="cli">curl -fsSL -o setup_ws_dash.sh https://raw.githubusercontent.com/barjinders/vibe-lab-workshop/master/setup_ws_dash.sh</pre>
+        <pre class="cli">chmod +x ./setup_ws_dash.sh</pre>
+        <pre class="cli">./setup_ws_dash.sh -f   # -f to overwrite existing scaffolding if needed</pre>
         <div class="warn">After running the setup script, open <code>workshop-config.yaml</code> and update required values (e.g., <code>oci.compartment_ocid</code>, region/service_endpoint, OCIR registry path, subnet OCID, private IP) for your tenancy.</div>
         <div class="tip">Tip: Edit only the placeholders marked with <your-value>; leave others as-is for default behavior.</div>
 
@@ -713,7 +956,14 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
         <p>In this phase, you'll vibe code your first API endpoint using a prompt—Cline will handle the FastAPI setup and OCI GenAI integration automatically.</p>
         <div class="prompt phase">
           <p><strong>Copy and paste this prompt into Cline:</strong></p>
-          Build a minimal FastAPI backend under a folder named recipe-api. Read memory-bank/ and workshop-config.yaml for all settings. Implement a single GET endpoint at /recipe that calls my OCI GenAI endpoint and returns a random dinner recipe. Keep it simple in this phase: no POST, no health checks, no Woolworths, no Streamlit. Provide the exact uvicorn command to run locally on the configured port. Hide every technical detail behind the config and memory bank. Run uvicorn in a virtual environment and start the service after installing the requirements.
+          <ul>
+            <li>Build a minimal FastAPI backend under a folder named recipe-api.</li>
+            <li>Read memory-bank/ and workshop-config.yaml for all settings.</li>
+            <li>Implement a single GET endpoint at /recipe that calls my OCI GenAI endpoint and returns a random dinner recipe.</li>
+            <li>Only implement GET endpoint in this phase: no POST,health checks,Woolworths or dash.</li>
+            <li>Provide the exact uvicorn command to run locally on the configured port.</li>
+            <li>Run uvicorn in a virtual environment and start the service after installing the requirements.</li>
+          </ul>
         </div>
         <div class="box">
           Verify (after running uvicorn):
@@ -725,14 +975,14 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
         <div class="tip">
           <strong>Success criteria:</strong> curl -s "http://localhost:8010/api/v1/recipe" | jq should return a JSON object with a "recipe" field containing a complete dinner recipe (title, ingredients, instructions).
         </div>
-        <div class="tip">
-          <strong>Optional manual steps (only if automation fails):</strong>
+        <details class="collapsible">
+          <summary><strong>Optional manual steps (only if automation fails)</strong></summary>
   <pre class="cli">python3 -m venv .venv</pre>
   <pre class="cli">source .venv/bin/activate</pre>
   <pre class="cli">pip install -r recipe-api/requirements.txt</pre>
   <pre class="cli">cd recipe-api</pre>
   <pre class="cli">python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload</pre>
-        </div>
+        </details>
         <div class="tip">
           <strong>Vibe Coding Tip:</strong> Notice how the prompt hides details like auth and endpoints? That's the Memory Bank at work—try tweaking it to see how Cline adapts!
         </div>
@@ -762,12 +1012,19 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
         <p>Here, you'll extend the API with more endpoints, learning how prompts can iteratively build on prior work without manual code changes.</p>
         <div class="prompt phase">
           <p><strong>Copy and paste this prompt into Cline:</strong></p>
-          Extend the backend. Read memory-bank/ and workshop-config.yaml. Add:
           <ul>
-            <li>POST /recipe (JSON body: optional "cuisine", "dietary")</li>
-            <li>GET /health and GET /ready (use standard health/readiness structure from the memory bank)</li>
+            <li>Extend the backend.</li>
+            <li>Read memory-bank/ and workshop-config.yaml.</li>
+            <li>Add:
+              <ul>
+                <li>POST /recipe (JSON body: optional "cuisine", "dietary")</li>
+                <li>GET /health and GET /ready (use standard health/readiness structure from the memory bank)</li>
+              </ul>
+            </li>
+            <li>Return structured JSON with model, cuisine/dietary echo, and recipe text.</li>
+            <li>Keep logging structured.</li>
+            <li>Provide the GET/POST curl test commands.</li>
           </ul>
-          Return structured JSON with model, cuisine/dietary echo, and recipe text. Keep logging structured. Provide the GET/POST curl test commands.
         </div>
         <div class="box">
           Verify:
@@ -812,7 +1069,12 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
         <p>This phase introduces structured output parsing, showing how prompts can enforce formats for downstream processing.</p>
         <div class="prompt phase">
           <p><strong>Copy and paste this prompt into Cline:</strong></p>
-          Update the recipe prompt so the AI appends a final line starting with "INGREDIENTS_LIST:" followed by a comma-separated list of main ingredients. Parse these into a simple list and include it in the API response. Keep config-driven behavior. Provide curl verification guidance.
+          <ul>
+            <li>Update the recipe prompt so the AI appends a final line starting with "INGREDIENTS_LIST:" followed by a comma-separated list of main ingredients.</li>
+            <li>Parse these into a simple list and include it in the API response.</li>
+            <li>Keep config-driven behavior.</li>
+            <li>Provide curl verification guidance.</li>
+          </ul>
         </div>
 
         <h2 id="phase-4">Phase 4 — Add Woolworths products with LLM reasoning</h2>
@@ -840,14 +1102,18 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
         <p>Integrate external APIs with LLM reasoning, demonstrating how vibe coding handles real-world data and decision-making.</p>
         <div class="prompt phase">
           <p><strong>Copy and paste this prompt into Cline:</strong></p>
-          Add a Woolworths integration service. Read memory-bank/ and workshop-config.yaml. Follow the Woolworths Integration Standard:
           <ul>
-            <li>Use primary endpoint GET /ui/Search/products with browser-like headers</li>
-            <li>Return top-2 candidates; prefer LargeImageFile for images (fallbacks allowed)</li>
-            <li>Keep calls async with concurrency guard, retries/backoff, and timeouts</li>
-            <li>Provide brief LLM selection reasoning with heuristic fallback on timeout</li>
+            <li>Add a Woolworths integration service. Read memory-bank/ and workshop-config.yaml. Follow the Woolworths Integration Standard:
+              <ul>
+                <li>Use primary endpoint GET /ui/Search/products with browser-like headers</li>
+                <li>Return top-2 candidates; prefer LargeImageFile for images (fallbacks allowed)</li>
+                <li>Keep calls async with concurrency guard, retries/backoff, and timeouts</li>
+                <li>Provide brief LLM selection reasoning with heuristic fallback on timeout</li>
+              </ul>
+            </li>
+            <li>Include a products array like [{ displayName, price, image, reasoning }] in the API response.</li>
+            <li>Provide curl verification.</li>
           </ul>
-          Include a products array like [{ displayName, price, image, reasoning }] in the API response. Provide curl verification.
         </div>
         <div class="box">
           Verify:
@@ -856,12 +1122,11 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
         <div class="tip">
           <strong>Success criteria:</strong> curl response includes "products" (or "woolworths_products") with product details and reasoning for each ingredient.
         </div>
-        <p class="muted">No manual steps needed—let Cline do the work!</p>
         <div class="tip">
           <strong>Vibe Coding Tip:</strong> Hide credentials and concurrency in prompts—Cline uses config.yaml and standards to manage safely.
         </div>
 
-        <h2 id="phase-5">Phase 5 — Build the Streamlit web app (local)</h2>
+        <h2 id="phase-5">Phase 5 — Build the Plotly Dash web app (local)</h2>
         <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
             <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
@@ -872,7 +1137,7 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
             <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
             <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 4</div>
             <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
-            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 5: Streamlit UI</div>
+            <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 5: Dash UI</div>
             <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
             <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 6</div>
             <i class="fas fa-arrow-right" style="color: var(--muted);"></i>
@@ -883,34 +1148,42 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
             <div style="flex: 1; text-align: center; padding: 8px; background: #e5e7eb; border-radius: 6px;">Phase 9: Validation</div>
           </div>
         </div>
-        <p>Shift to frontend with Streamlit, connecting to your API and adding state—vibe code a full-stack app!</p>
+        <p>Shift to frontend with Plotly Dash, connecting to your API and adding state—vibe code a full-stack app!</p>
         <div class="prompt phase">
           <p><strong>Copy and paste this prompt into Cline:</strong></p>
-          Build a friendly Streamlit app called “What’s for Dinner?” under <code>recipe-streamlit-app/</code>. Use the Workshop Memory Bank and <code>workshop-config.yaml</code> to handle all the details quietly in the background (per Streamlit App Standard). The app should:
           <ul>
-            <li>Let me choose cuisine and dietary options in the sidebar with “Generate” and “Surprise me” buttons</li>
-            <li>Show the recipe, clickable ingredient chips (to add to cart), and product suggestions with prices and clear reasons</li>
-            <li>Work out of the box with my running API; if the address isn’t known, let me set it in the sidebar and include a quick connection test</li>
-            <li>Provide a command to run the app (and a backup command on a different port if the first is busy)</li>
-            <li>Hide technical choices and implementation details; follow the Memory Bank, configuration, and .clinerules. Create a virtual env to run streamlit service. Allow iptables and firewalld for Streamlit and FastAPI application ports and verify external access.</li>
+            <li>Dash Build a friendly plotly dash app called “What’s for Dinner?” under <code>recipe-dash-app/</code>.</li>
+            <li>Use the Workshop Memory Bank and <code>workshop-config.yaml</code> to handle all the details quietly in the background (per Gradio App Standard).</li>
+            <li>The app should:
+              <ul>
+                <li>Let me choose cuisine and dietary options on the left with “Generate” (POST) and “Surprise me” (GET)</li>
+                <li>Show the recipe, clickable ingredient chips (to add to cart), and product suggestions with prices and clear reasons</li>
+                <li>Work out of the box with my running API; if the address isn’t known, let me set it in a textbox and include a quick Test API button</li>
+                <li>Provide a command to run the app (and a backup port if the first is busy)</li>
+                <li>Hide technical choices and implementation details; follow the Memory Bank, configuration, and .clinerules</li>
+                <li>Create or use a virtual env for the dash UI</li>
+                <li>Allow iptables and firewalld for dash and FastAPI ports and verify external access</li>
+                <li>Show a Debug API Output panel at the bottom with the raw JSON response</li>
+              </ul>
+            </li>
           </ul>
         </div>
         <div class="box">
           Verify:
           <ul>
-            <li>Run: <code>streamlit run recipe-streamlit-app/app.py</code></li>
-            <li>Generate a recipe; ensure state persists across interactions.</li>
+            <li>Run: <code>python recipe-dash-app/app.py</code></li>
+            <li>If port 8050 is busy: <code>python recipe-dash-app/app.py --port 8051</code></li>
+            <li>Generate a recipe; ensure state persists and the Debug API Output panel shows raw JSON.</li>
           </ul>
         </div>
         <div class="tip">
-          <strong>Success criteria:</strong> Run streamlit run recipe-streamlit-app/app.py; generate recipes and verify state persists (last recipe, cart).
+          <strong>Success criteria:</strong> Run python recipe-dash-app/app.py; generate recipes, verify state persists (last recipe, cart), and confirm the Debug API Output panel shows the raw JSON response.
         </div>
-        <p class="muted">No manual steps needed—let Cline do the work!</p>
         <div class="tip">
-          <strong>Vibe Coding Tip:</strong> Describe UI behaviors naturally in prompts; Cline infers the Streamlit code.
+          <strong>Vibe Coding Tip:</strong> Describe UI behaviors naturally in prompts; Cline infers the Dash code.
         </div>
 
-        <h2 id="phase-6">Phase 6 — Run FastAPI and Streamlit as systemd services (auto‑restart & on‑boot)</h2>
+        <h2 id="phase-6">Phase 6 — Run FastAPI and Dash as systemd services (auto‑restart & on‑boot)</h2>
         <div class="progress-diagram" style="margin: 20px 0; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
             <div style="flex: 1; text-align: center; padding: 8px; background: #dcfce7; border-radius: 6px;">Phase 1</div>
@@ -936,38 +1209,41 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
         <div class="prompt phase">
           <p><strong>Copy and paste this prompt into Cline:</strong></p>
           <ul>
-            <li>Configure Oracle Linux to run both FastAPI (uvicorn) and Streamlit as systemd services that start on boot and restart on failure. Use the current project directory as the WorkingDirectory and prefer a Python venv if present. Ensure Restart=always and WantedBy=multi-user.target. Create, enable, start, and show how to check logs for both services. Keep implementation details in the Memory Bank and .clinerules; the prompt should be concise and friendly.</li>
+            <li>Run both FastAPI (uvicorn) and Dash as systemd services that start on boot and restart on failure</li>
+            <li>Use the current project directory as WorkingDirectory; prefer a Python venv if present</li>
+            <li>Ensure Restart=always and WantedBy=multi-user.target</li>
+            <li>Create, enable, and start both services; show how to check logs</li>
+            <li>Keep implementation details in the Memory Bank and .clinerules; keep the prompt concise and friendly</li>
           </ul>
         </div>
-        <div class="tip"><strong>Information only:</strong> The following service management commands are provided for reference; do not run them unless instructed during the workshop.</div>
-        <div class="box">
+        <details class="collapsible">
+          <summary><strong>Information only:</strong> The following service management commands are provided for reference.</summary>
   <pre class="cli"># Information only — do not run unless instructed
 # Reload, enable on boot, and start
   sudo systemctl daemon-reload</pre>
-  <pre class="cli">sudo systemctl enable recipe-api.service recipe-streamlit.service</pre>
-  <pre class="cli">sudo systemctl start recipe-api.service recipe-streamlit.service</pre>
+  <pre class="cli">sudo systemctl enable recipe-api.service recipe-dash.service</pre>
+  <pre class="cli">sudo systemctl start recipe-api.service recipe-dash.service</pre>
   <pre class="cli"># Check status/logs
   systemctl --no-pager status recipe-api.service</pre>
-  <pre class="cli">systemctl --no-pager status recipe-streamlit.service</pre>
+  <pre class="cli">systemctl --no-pager status recipe-dash.service</pre>
   <pre class="cli">journalctl -u recipe-api.service -n 100 --no-pager</pre>
-  <pre class="cli">journalctl -u recipe-streamlit.service -n 100 --no-pager</pre>
-        </div>
+  <pre class="cli">journalctl -u recipe-dash.service -n 100 --no-pager</pre>
+        </details>
         <div class="box">
           Verify (after services start):
   <pre class="cli"># API reachable
   curl -s "http://localhost:8010/api/v1/recipe" | jq</pre>
-  <pre class="cli"># Streamlit UI reachable (from VM)
-  curl -sI "http://localhost:8501/" | head -n 1</pre>
+  <pre class="cli"># Dash UI reachable (from VM)
+  curl -sI "http://localhost:8050/" | head -n 1</pre>
   <pre class="cli"># Reboot test (services should auto-start)
   sudo reboot now</pre>
   <pre class="cli"># After reconnect:
   systemctl is-active recipe-api.service</pre>
-  <pre class="cli">systemctl is-active recipe-streamlit.service</pre>
+  <pre class="cli">systemctl is-active recipe-dash.service</pre>
         </div>
         <div class="tip">
           <strong>Success criteria:</strong> Both services are active after reboot and automatically restart if the process exits or crashes.
         </div>
-        <p class="muted">No manual steps needed—let Cline do the work!</p>
         <div class="tip">
           <strong>Vibe Coding Tip:</strong> Prompts can configure systems too—describe the behavior, and Cline generates the systemd units.
         </div>
@@ -997,8 +1273,8 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
         <p>Create a local MCP server to extend capabilities by integrating with your recipe API.</p>
         <div class="prompt phase">
           <p><strong>Copy and paste this prompt into Cline:</strong></p>
-          <p>Create a local MCP server so I can ask for dinner recipes from my existing API without changing my app or UI.</p>
           <ul>
+            <li>Create a local MCP server so I can ask for dinner recipes from my existing API without changing my app or UI.</li>
             <li>First, ask me for my API Base URL (for example: http://localhost:8010 or my API Gateway like https://.../api/v1). Use exactly what I provide.</li>
             <li>Add two simple tools that mirror my API:
               <ul>
@@ -1047,12 +1323,18 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
     <summary><strong>Optional (20-30 min): Containerize apps and push to OCIR (devops‑recipe standard)</strong></summary>
       <div class="prompt phase">
         <p><strong>Copy and paste this prompt into Cline:</strong></p>
-        Containerize the FastAPI API using the approved standard: python:3.11‑slim, non‑root user (uid 1000), EXPOSE 8000, HEALTHCHECK with curl -f http://localhost:8000/health, and run uvicorn on port 8000 with 2 workers. <b>All values (image URL/repo/tag) come strictly from workshop-config.yaml and the Memory Bank—never hardcoded or prompted. Containers use Resource Principals by default (do not bake ~/.oci). </b> Produce the Dockerfile if missing, then build and push the image using config values. Output all commands with values filled from config.
+        <ul>
+          <li>Containerize the FastAPI API using the approved standard: python:3.11-slim, run as non-root (uid 1000), EXPOSE 8000, HEALTHCHECK curl -f http://localhost:8000/health, and uvicorn on port 8000 with 2 workers.</li>
+          <li><b>All values (image URL/repo/tag) come strictly from workshop-config.yaml and the Memory Bank—never hardcoded or prompted. Containers use Resource Principals by default (do not bake ~/.oci).</b></li>
+          <li>Produce the Dockerfile if missing (enforce the standard), then build the image using config values.</li>
+          <li>Output all docker build and push commands with values filled from config.</li>
+          <li>Ask the user to execute docker/podman login with an OCI Auth Token in their terminal.</li>
+        </ul>
       </div>
       <div class="box">
         Example commands (filled via config):
   <pre class="cli"># Login to OCIR (use an Auth Token for your OCI user)
-  docker login -u "sdncspltazsk/<username>" syd.ocir.io</pre>
+  docker login  region-key.ocir.io -u "tenancy-namespace>/username" </pre>
   <pre class="cli"># Build and push API image (standard: port 8000, non-root, healthcheck curl /health)
   docker build -t syd.ocir.io/sdncspltazsk/recipe-api:latest -f recipe-api/Dockerfile .</pre>
   <pre class="cli">docker push syd.ocir.io/sdncspltazsk/recipe-api:latest</pre>
@@ -1061,68 +1343,41 @@ key_file=/home/opc/.oci/<your_api_private_key>.pem</pre>
     </details>
 
   <details>
-    <summary><strong>Optional (20-30 min): Containerize and push Streamlit UI to OCIR (standardized, config-driven)</strong></summary>
+    <summary><strong>Optional (20-30 min): Containerize and push Dash UI to OCIR (standardized, config-driven)</strong></summary>
       <div class="prompt phase">
         <p><strong>Copy and paste this prompt into Cline:</strong></p>
-        Containerize the streamlit UI using the approved standard: python:3.11‑slim, non‑root user (uid 1000). <b>All values (image URL/repo/tag) come strictly from workshop-config.yaml and the Memory Bank—never hardcoded or prompted. Containers use Resource Principals by default (do not bake ~/.oci).</b>
-        - Produce the Dockerfile in <code>recipe-streamlit-app/</code> if missing, strict to standards.
-        - Before pushing, ask the user to log in in any terminal:
-          <code>docker login syd.ocir.io -u sdncspltazsk/barjinder.s.singh@oracle.com --password <AUTH TOKEN></code>
-        - Tag the image as <code>syd.ocir.io/sdncspltazsk/recipe-streamlit-app:latest</code>, but append a random 3-digit number to latest (e.g. <code>:latest-483</code>) to avoid conflicts with other users.
-        - Output all docker build and push commands with config values filled in.
+        <ul>
+          <li>Containerize the Dash UI using the approved standard: python:3.11-slim, non-root (uid 1000).</li>
+          <li><b>All values (image URL/repo/tag) come strictly from workshop-config.yaml and the Memory Bank—never hardcoded or prompted. Containers use Resource Principals by default (do not bake ~/.oci).</b></li>
+          <li>Produce the Dockerfile in <code>recipe-dash-app/</code> if missing (strict to standards).</li>
+          <li>Before pushing, ask the user to log in (OCI Auth Token):<pre class="cli">docker login region-key.ocir.io -u "tenancy-namespace/username"</pre></li>
+          <li>Tag the image as <code>syd.ocir.io/sdncspltazsk/recipe-dash-app:latest</code> with a random 3-digit suffix (e.g., <code>:latest-483</code>) to avoid conflicts with other users.</li>
+          <li>Output all docker build and push commands with config values filled in.</li>
+        </ul>
       </div>
       <div class="box">
         Example commands (filled via config):
-  <pre class="cli"># Manual login
-  docker login syd.ocir.io -u sdncspltazsk/barjinder.s.singh@oracle.com --password <AUTH TOKEN></pre>
+  <pre class="cli"># Login to OCIR (use an Auth Token for your OCI user)
+docker login region-key.ocir.io -u "tenancy-namespace/username"</pre>
   <pre class="cli"># Tag with random 3 digit suffix, e.g. rnd=$(shuf -i 100-999 -n 1)
   rnd=$(shuf -i 100-999 -n 1)</pre>
-  <pre class="cli">docker build -t syd.ocir.io/sdncspltazsk/recipe-streamlit-app:latest-${rnd} -f recipe-streamlit-app/Dockerfile recipe-streamlit-app</pre>
-  <pre class="cli">docker push syd.ocir.io/sdncspltazsk/recipe-streamlit-app:latest-${rnd}</pre>
-        <p class="muted">The Dockerfile must comply (python:3.11-slim, non-root, healthcheck, EXPOSE 8501, do not bake ~/.oci), and tag must be unique per user run.</p>
+  <pre class="cli">docker build -t syd.ocir.io/sdncspltazsk/recipe-dash-app:latest-${rnd} -f recipe-dash-app/Dockerfile recipe-dash-app</pre>
+  <pre class="cli">docker push syd.ocir.io/sdncspltazsk/recipe-dash-app:latest-${rnd}</pre>
+        <p class="muted">The Dockerfile must comply (python:3.11-slim, non-root, healthcheck, EXPOSE 8050, do not bake ~/.oci), and tag must be unique per user run.</p>
       </div>
     </details>
 
-  <details>
-    <summary><strong>Optional (20-30 min): Expose Streamlit via a Public Load Balancer (Oracle Linux VM)</strong></summary>
-      <div class="prompt phase">
-        <p><strong>Copy and paste this prompt into Cline:</strong></p>
-        Please expose my Streamlit service using an Oracle OCI Load Balancer.
-        <ul>
-          <li>The name of the load balancer should be: <your-desired-lb-name></li>
-          <li>Use network type, subnets, and all backend configuration from workshop-config.yaml only—never prompt me for ports, subnets, or IPs.</li>
-          <li>Set health check and backend mapping to follow config and automation rules; I only provide the display name and whether this LB is public (default is public).</li>
-          <li>After setup, output the public hostname/IP and a command to verify Streamlit is accessible.</li>
-        </ul>
-        All tech mapping/CLI tasks are automated behind the config and memory bank.
-      </div>
-      <details class="collapsible">
-        <summary><strong>Config example for workshop-config.yaml</strong></summary>
-        <pre class="cli">streamlit_lb:
-  display_name: my-streamlit-lb
-  shape: flexible
-  is_public: true
-  subnet_ids:
-    - ocid1.subnet.oc1..xxxxxxxx
-  listener_port: 80
-  backend_host: <auto-detected or configured>
-  backend_port: 8501
-  health_check_path: /_stcore/health
-  health_check_protocol: HTTP
-  health_check_port: 8501</pre>
-      </details>
-      <div class="box">
-        Verify:
-        <pre class="cli"># After creation, test Streamlit via the LB public address
-curl -sI "http://<lb-public-host>/" | head -n 1</pre>
-      </div>
-  </details>
 
   <details>
-    <summary><strong>Optional (20-30 min): Run on OCI Container Instances (API)</strong></summary>
+    <summary><strong>Optional (20-30 min): Create an OCI Container Instance for FastAPI</strong></summary>
       <div class="prompt phase">
         <p><strong>Copy and paste this prompt into Cline:</strong></p>
-        Create an OCI Container Instance for the API. <b>All values (image URL, env, subnet, private IP, shape) must be read from workshop-config.yaml/Memory Bank—never hardcoded or prompted. Use Resource Principals by default for all SDK calls (no ~/.oci in containers). </b> Enforce delete‑then‑recreate when reusing private IPs. Keep container port 8000 and verify /health, then GET/POST /recipe after create.
+        <ul>
+          <li>Create an OCI Container Instance for the API.</li>
+          <li><b>All values (image URL, env, subnet, private IP, shape) must be read from workshop-config.yaml/Memory Bank—never hardcoded or prompted. Use Resource Principals by default for all SDK calls (no ~/.oci in containers).</b></li>
+          <li>Enforce delete‑then‑recreate when reusing private IPs.</li>
+          <li>Expose container port 8000 and verify /health; then test GET/POST /recipe after create.</li>
+        </ul>
       </div>
       <div class="box">
         <div class="warn">If you must reuse the same private IP, delete the existing Container Instance first and wait for IP release.</div>
@@ -1130,11 +1385,17 @@ curl -sI "http://<lb-public-host>/" | head -n 1</pre>
     </details>
 
   <details>
-      <summary><strong>Optional (20-30 min): Create an OCI Container Instance for Streamlit (config-driven, devops-standard)</strong></summary>
+      <summary><strong>Optional (20-30 min): Create an OCI Container Instance for Dash (config-driven, devops-standard)</strong></summary>
       <div class="prompt phase">
         <p><strong>Copy and paste this prompt into Cline:</strong></p>
-        Create an OCI Container Instance for my Streamlit UI. All values (image URL/repo/tag, subnet, compartment, shape, env) must be read from workshop-config.yaml and the Memory Bank—never hardcoded or prompted. Use Resource Principals by default for all OCI SDK calls (do not copy ~/.oci/config into containers). Pick any random private IP from the primary subnet in config. Enforce the delete‑then‑recreate pattern if the private IP is reused. Expose container port 8501. Show how to verify Streamlit is healthy via HTTP and how to test via CLI.
-        <br>Afterward, output the full oci ci create command and curl verifications.
+        <ul>
+          <li>Create an OCI Container Instance for my Dash UI.</li>
+          <li>Read all values (image URL/repo/tag, subnet, compartment, shape, env) from workshop-config.yaml and the Memory Bank—never hardcoded or prompted.</li>
+          <li>Use Resource Principals by default for all OCI SDK calls (do not copy ~/.oci/config into containers).</li>
+          <li>Pick any random private IP from the primary subnet in config; enforce delete‑then‑recreate if it is reused.</li>
+          <li>Expose container port 8050 and verify Dash is healthy via HTTP; include CLI tests.</li>
+          <li>Output the full <code>oci ci create</code> command and curl verifications.</li>
+        </ul>
       </div>
       <div class="box">
         <p class="muted">
@@ -1148,14 +1409,49 @@ curl -sI "http://<lb-public-host>/" | head -n 1</pre>
     </details>
 
   <details>
+    <summary><strong>Optional (20-30 min): Expose Dash UI via a Public Load Balancer (Oracle Linux VM)</strong></summary>
+      <div class="prompt phase">
+        <p><strong>Copy and paste this prompt into Cline:</strong></p>
+        <ul>
+          <li>Please expose my Dash service using an Oracle OCI Load Balancer.</li>
+          <li>The name of the load balancer should be: <code><your-desired-lb-name></code></li>
+          <li>Use network type, subnets, and all backend configuration from workshop-config.yaml only—never prompt me for ports, subnets, or IPs.</li>
+          <li>Set health check and backend mapping to follow config and automation rules; I only provide the display name and whether this LB is public (default is public).</li>
+          <li>After setup, output the public hostname/IP and a command to verify Dash is accessible.</li>
+          <li>All tech mapping/CLI tasks are automated behind the config and memory bank.</li>
+        </ul>
+      </div>
+      <details class="collapsible">
+        <summary><strong>Config example for workshop-config.yaml</strong></summary>
+        <pre class="cli">dash_lb:
+  display_name: my-dash-lb
+  shape: flexible
+  is_public: true
+  subnet_ids:
+    - ocid1.subnet.oc1..xxxxxxxx
+  listener_port: 80
+  backend_host: <auto-detected or configured>
+  backend_port: 8050
+  health_check_path: /
+  health_check_protocol: HTTP
+  health_check_port: 8050</pre>
+      </details>
+      <div class="box">
+        Verify:
+        <pre class="cli"># After creation, test Dash via the LB public address
+curl -sI "http://<lb-public-host>/" | head -n 1</pre>
+      </div>
+  </details>
+
+  <details>
     <summary><strong>Optional (10-15 min): OCI DevOps Integration — Create Project, Repo, and Push Code</strong></summary>
       <div class="prompt phase">
         <p><strong>Copy and paste this prompt into Cline:</strong></p>
-        <p>In my OCI compartment named "techdaylabs", set up DevOps and push my current workspace code:</p>
+        <p>In my OCI compartment listed in workshop-config.yaml, set up DevOps and push my current workspace code:</p>
         <ul>
           <li>Create (or find) an OCI Notifications topic named "vibe-workshop-devops-notify" and use it for DevOps project notifications.</li>
           <li>Create (or use) an OCI DevOps Project named "vibe-workshop" in the same compartment.</li>
-          <li>Create (or use) a hosted DevOps repository named "vibe-check67".</li>
+          <li>Create (or use) a hosted DevOps repository named "vibe-demo".</li>
           <li>Initialize a local git repo if needed, add a .gitignore (Python, venvs, temp, CI outputs), remove any temporary folders and files, commit, and push the cleaned code to the DevOps repo on the main branch.</li>
           <li>Prefer SSH for pushing. If SSH fails, fall back to HTTPS with an OCI Auth Token.</li>
           <li>If the remote repo contains default content, fetch origin/main and merge with --no-rebase and --allow-unrelated-histories, then push and set upstream.</li>
@@ -1178,14 +1474,16 @@ curl -sI "http://<lb-public-host>/" | head -n 1</pre>
   <details>
     <summary><strong>Optional (20-30 min): Put the API behind API Gateway (Oracle Linux VM)</strong></summary>
       <div class="prompt phase">
-      <p><strong>Copy and paste this prompt into Cline:</strong></p>
-      Please expose my recipe API using Oracle API Gateway.
-      - Use all route/back-end/host details only from workshop-config.yaml and memory bank—never prompt for IP, port, container, or file names.
-      - The API is a normal FastAPI server running on an Oracle Linux VM.
-      - Only ask for the API Gateway display name and type (default is PUBLIC).
-      - After creation, output the public API Gateway endpoint and a sample curl to test /api/v1/recipe.
-      Network, backend mapping and all CLI commands should be config-driven and automated, so users only need to provide simple, high-level guidance.
-    </div>
+        <p><strong>Copy and paste this prompt into Cline:</strong></p>
+        <ul>
+          <li>Please expose my recipe API using Oracle API Gateway.</li>
+          <li>Use all route/back-end/host details only from workshop-config.yaml and the Memory Bank—never prompt for IP, port, container, or file names.</li>
+          <li>The API is a normal FastAPI server running on an Oracle Linux VM.</li>
+          <li>Only ask for the API Gateway display name and type (default is PUBLIC).</li>
+          <li>After creation, output the public API Gateway endpoint and a sample curl to test /api/v1/recipe.</li>
+          <li>Network, backend mapping, and all CLI commands should be config-driven and automated; users provide only high-level guidance.</li>
+        </ul>
+      </div>
     <div class="box">
       Verify:
   <pre class="cli"># List all deployments (get deployment and gateway OCID/endpoints)
@@ -1253,7 +1551,7 @@ curl -s -X POST http://localhost:8010/api/v1/recipe \
         </div>
 
         <div class="box">
-          <strong>Streamlit UI checks</strong>
+          <strong>Dash UI checks</strong>
   <pre class="cli"># From the VM
 curl -sI "http://localhost:8501/" | head -n 1</pre>
           <p class="muted">Open the UI in a browser if exposed, generate recipes, and confirm state (last recipe, cart) persists.</p>
@@ -1276,26 +1574,6 @@ curl -s "https://<gateway-endpoint>/api/v1/recipe?cuisine=Italian" | jq</pre>
           <strong>Success criteria:</strong> All health endpoints return OK; GET/POST recipe return a complete recipe; UI loads and persists state; optional MCP/CI/Gateway checks succeed.
         </div>
 
-        <details class="collapsible" id="troubleshooting">
-          <summary><strong>Troubleshooting Prompts (Natural Language)</strong></summary>
-          <div class="prompt">
-            <p><strong>Copy and paste this troubleshooting prompt into Cline:</strong></p>
-            The API can’t reach OCI GenAI. Read memory-bank/ and workshop-config.yaml, fix authentication to use ~/.oci/config locally and resource principals in containers. Do not hardcode secrets. Re-test /health and /ready.
-          </div>
-          <h3>App Issues</h3>
-          <div class="prompt">
-            <p><strong>Copy and paste this troubleshooting prompt into Cline:</strong></p>
-            Ingredient extraction missing. Enforce a final line starting with "INGREDIENTS_LIST:" and parse it into a list. Re-run and confirm.
-          </div>
-          <div class="prompt">
-            <p><strong>Copy and paste this troubleshooting prompt into Cline:</strong></p>
-            Woolworths results empty/slow. Apply retries/backoff, respect concurrency limits, and log reasoning. Use the Woolworths Integration Standard for endpoints/headers.
-          </div>
-          <div class="prompt">
-            <p><strong>Copy and paste this troubleshooting prompt into Cline:</strong></p>
-            Reuse the same private IP for Container Instance. Follow the delete-then-recreate rule from the Memory Bank; wait until the IP is released before creating a new instance.
-          </div>
-        </details>
 
         <details class="collapsible" id="oci-iam-policies">
           <summary><strong>Appendix — OCI IAM Policies (workshop baseline)</strong></summary>
@@ -1336,7 +1614,7 @@ allow dynamic-group <DYN_GROUP_NAME> to read repos in tenancy</pre>
             <li>Config-driven architecture (no hardcoded region/endpoints/IDs)</li>
             <li>Standard API surface (health, ready, versioned routes), structured logging</li>
             <li>OCI deployment rules (IP reuse, timeouts, shapes), OCIR build/push patterns</li>
-            <li>Streamlit session_state persistence and UX conventions</li>
+            <li>Dash session_state persistence and UX conventions</li>
             <li>GenAI prompt structure that emits INGREDIENTS_LIST</li>
             <li>Woolworths integration patterns and LLM product selection guardrails</li>
             <li>Containerization standard aligned to devops‑recipe (port 8000, non‑root, curl healthcheck)</li>
@@ -1430,6 +1708,35 @@ allow dynamic-group <DYN_GROUP_NAME> to read repos in tenancy</pre>
           removeNode(h1);
           if (next && next.classList && next.classList.contains('muted')) removeNode(next);
         }
+      }
+    })();
+  </script>
+  <script>
+    // Mermaid fallback: if rendering fails, swap to static conceptual image
+    (function(){
+      const fallbackUrl = "https://objectstorage.ap-sydney-1.oraclecloud.com/p/jAMurpHsj5xKwCTZCXFabuEKgn6iDrxu968pD_mZWjyRMUpLjwQbgn0aOTLJVx59/n/idjhqglymefr/b/documents/o/workshop.png";
+      function ensureMermaidRendered(){
+        const cont = document.querySelector('.mermaid');
+        if (!cont) return;
+        // Allow time for Mermaid (startOnLoad) to render to SVG
+        setTimeout(()=>{
+          const svg = cont.querySelector('svg');
+          if (!svg || svg.textContent.includes('Syntax error')){
+            const img = document.createElement('img');
+            img.src = fallbackUrl;
+            img.alt = 'Conceptual Architecture Diagram';
+            img.style.maxWidth = '100%';
+            img.style.height = 'auto';
+            img.style.border = '1px solid #e5e7eb';
+            img.style.borderRadius = '6px';
+            cont.replaceWith(img);
+          }
+        }, 2000);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ensureMermaidRendered);
+      } else {
+        ensureMermaidRendered();
       }
     })();
   </script>
