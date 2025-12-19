@@ -1252,6 +1252,95 @@ else
   echo "Exists (skipping): ${DEST}/memory-bank/lbStandards.md (use -f to overwrite)"
 fi
 
+# memory-bank/apigwStandards.md — OCI API Gateway Standards (Non‑Negotiable)
+if [[ ! -f "${DEST}/memory-bank/apigwStandards.md" || "${FORCE}" -eq 1 ]]; then
+  cat > "${DEST}/memory-bank/apigwStandards.md" << 'EOF'
+# OCI API Gateway Standards — Config, Spec, Wiring, and Diagnostics (Non‑Negotiable)
+
+Purpose
+- Provide a deterministic, repeatable pattern to create and wire an OCI API Gateway (APIGW) for the Recipe API.
+- Keep all values config‑driven via workshop-config.yaml. This document is standards-only (no deployment logic in this script).
+
+Configuration (workshop-config.yaml)
+- api.base_path                 # e.g., "/api/v1" (path prefix for all routes)
+- api.port                      # local service port (e.g., 8010) for origin examples
+- api_gateway.display_name      # e.g., "vibe-api-public-gw"
+- api_gateway.type              # "PUBLIC" (default) or "PRIVATE"
+- api_gateway.subnet_id         # Subnet OCID for the gateway (derive region from this OCID)
+- website_lb.backend_host       # Optional origin host for direct gateway → UI/API testing
+- website_lb.backend_port       # Optional origin port (fallback for origin inference)
+- .env: APIGW_READ_TIMEOUT=300  # Read timeout (seconds) on APIGW routes; 300s recommended for LLM latency
+
+Region derivation
+- Derive the OCI CLI region from the first subnet OCID:
+  - Regex: oc1.([a-z0-9\-]+). within api_gateway.subnet_id
+  - Pass --region "<derived>" to all APIGW CLI commands
+
+Origin (backend) URL precedence (fully config-driven)
+1) Explicit backend origin set outside of this doc (if you maintain one)
+2) api_gateway.backend_host + backend_port (when present in future configs)
+3) Environment API_BASE_URL (take origin: scheme://host:port from it)
+4) website_lb.backend_host + api.port
+5) http://127.0.0.1:${api.port}
+
+Routing spec (prefix = api.base_path)
+- Create routes that forward to the origin with readTimeoutInSeconds set to APIGW_READ_TIMEOUT:
+  - /recipe        → HTTP_BACKEND url: <origin>
+  - /recipe/*      → HTTP_BACKEND url: <origin>
+  - /health        → HTTP_BACKEND url: <origin>
+  - /ready         → HTTP_BACKEND url: <origin>
+
+CLI patterns (idempotent — examples only)
+1) Gateway (create or find by display-name)
+   - oci --region "<region>" api-gateway gateway list --compartment-id "<comp>" --all \
+       --query "data[? 'display-name' == 'vibe-api-public-gw'].id | [0]" --raw-output
+   - oci --region "<region>" api-gateway gateway create \
+       --compartment-id "<comp>" --display-name "<name>" \
+       --subnet-id "<subnet_ocid>" --endpoint-type "<PUBLIC|PRIVATE>" \
+       --query 'data.id' --raw-output
+   - Wait until lifecycle-state == ACTIVE before proceeding.
+
+2) Deployment (create or update with --force)
+   - Build JSON spec file (see routing spec above), include readTimeoutInSeconds=${APIGW_READ_TIMEOUT:-300}
+   - Create:
+     oci --region "<region>" api-gateway deployment create \
+       --compartment-id "<comp>" --gateway-id "<gw_id>" \
+       --path-prefix "<api.base_path>" --display-name "<name>-deploy" \
+       --specification file://apigw_spec.json --query 'data.id' --raw-output
+   - Update:
+     oci --region "<region>" api-gateway deployment update \
+       --deployment-id "<dep_id>" --specification file://apigw_spec.json --force
+
+3) Endpoint
+   - oci --region "<region>" api-gateway deployment get --deployment-id "<dep_id>" \
+       --query 'data.endpoint' --raw-output
+
+Verification
+- Gateway endpoint: https://<endpoint><api.base_path>
+- Example curls (LLM latency may require 300s timeout at the client/gateway layers):
+  - curl -s "<endpoint><base_path>/health" | jq
+  - curl -s "<endpoint><base_path>/ready" | jq
+  - curl -s "<endpoint><base_path>/recipe?cuisine=Mexican&dietary=vegan" | jq
+
+Timeout guidance (LLM)
+- Read timeout for recipe endpoints should be up to 300 seconds:
+  - .env: APIGW_READ_TIMEOUT=300
+  - Clients: STREAMLIT_API_TIMEOUT ≥ 300, GRADIO_API_TIMEOUT=300, DASH_API_TIMEOUT=300
+
+JMESPath and quoting
+- When filtering by "display-name", ensure proper quoting: --query "data[? 'display-name' == '<name>'].id | [0]"
+
+Common pitfalls and remedies
+- 404 at /api/v1/recipe: ensure deployment --path-prefix matches api.base_path in workshop-config.yaml.
+- 502/504 at recipe endpoints: increase read timeout to 300s on APIGW and clients; verify backend health at /health and /ready.
+- Wrong region: derive and pass OCI CLI --region from subnet OCID.
+- VCN/security rules: even with a correct spec, network security can block traffic; verify with curl to both the gateway endpoint and the origin.
+EOF
+  echo "Wrote: ${DEST}/memory-bank/apigwStandards.md"
+else
+  echo "Exists (skipping): ${DEST}/memory-bank/apigwStandards.md (use -f to overwrite)"
+fi
+
 # --- First-go helpers (optional) ---
 open_ports_gradio() {
   # Open API (8010) and Gradio UI ports (7860/7861) only
@@ -2958,6 +3047,7 @@ pairs=(
   "gradioStandards.md:12-gradio-app-standard.md"
   "dashStandards.md:13-dash-app-standard.md"
   "lbStandards.md:14-oci-lb-standards.md"
+  "apigwStandards.md:15-oci-apigw-standards.md"
 )
 
 for pair in "${pairs[@]}"; do
@@ -2995,7 +3085,8 @@ if [[ ! -f "${DEST}/AGENTS.md" || "${FORCE}" -eq 1 ]]; then
       "11-mcp-standards.md" \
       "12-gradio-app-standard.md" \
       "13-dash-app-standard.md" \
-      "14-oci-lb-standards.md"
+      "14-oci-lb-standards.md" \
+      "15-oci-apigw-standards.md"
     do
       if [[ -f "${DEST}/.clinerules/${f}" ]]; then
         echo "## ${f}"
@@ -3050,6 +3141,12 @@ api_gateway:
   display_name: "vibe-api-public-gw"
   type: "PUBLIC"                   # PUBLIC (default) or PRIVATE
   subnet_id: "ocid1.subnet.oc1..xxxxxxxx"
+  # Optional explicit backend origin for API Gateway; if set, it overrides origin inference.
+  # If unset, origin is inferred from API_BASE_URL env, website_lb.backend_host/backend_port, or localhost.
+  backend_host: "127.0.0.1"
+  backend_port: 8010
+  # Gateway path prefix remains api.base_path above (e.g., /api/v1)
+  # Read timeout is controlled via .env APIGW_READ_TIMEOUT (default 300s for LLM endpoints)
 
 # Generic website load balancer (replaces streamlit_lb/application_lb)
 website_lb:
@@ -3118,26 +3215,6 @@ else
   echo "Exists (skipping): ${DEST}/recipe-guide.json (use -f to overwrite)"
 fi
 
-# -----------------------------------------------------------------------------
-# Friendly user prompts (non-technical) — idempotent
-# -----------------------------------------------------------------------------
-mkdir -p "${DEST}/prompts"
-if [[ ! -f "${DEST}/prompts/friendly-dash.txt" || "${FORCE}" -eq 1 ]]; then
-  cat > "${DEST}/prompts/friendly-dash.txt" << 'EOF'
-Build a friendly plotty dash app called “What’s for Dinner?” under recipe-dash-app/. Use the Workshop Memory Bank and workshop-config.yaml to handle all the details quietly in the background (per Gradio App Standard). The app should:
-- Let me choose cuisine and dietary options on the left with “Generate” (POST) and “Surprise me” (GET)
-- Show the recipe, clickable ingredient chips (to add to cart), and product suggestions with prices and clear reasons
-- Work out of the box with my running API; if the address isn’t known, let me set it in a textbox and include a quick Test API button
-- Provide a command to run the app (and a backup port if the first is busy)
-- Hide technical choices and implementation details; follow the Memory Bank, configuration, and .clinerules
-- Create or use a virtual env for the dash UI
-- Allow iptables and firewalld for dash and FastAPI ports and verify external access
-- Show a Debug API Output panel at the bottom with the raw JSON response
-EOF
-  echo "Wrote: ${DEST}/prompts/friendly-dash.txt"
-else
-  echo "Exists (skipping): ${DEST}/prompts/friendly-dash.txt (use -f to overwrite)"
-fi
 
 # -----------------------------------------------------------------------------
 # Defaults and helpers
