@@ -7,7 +7,7 @@ Format: Teleprompter-ready narration + on-screen cues + demo steps
 
 00:00 - Cold open (hook)
 Narration (energetic):
-What if you could develop and deploy a GenAI microservices application just by describing what you want? Today, I am building Whats for Dinner? — a concept app that answers the daily question, whats for dinner? We will vibe code it end-to-end with Cline and Oracle Code Assist, wire in AI, ship a Plotly Dash UI, and validate everything. No mystery magic — just step-by-step natural language, strict standards, and production discipline.
+What if you could develop and deploy a GenAI microservices application just by describing what you want? Today, I'm building 'What's for Dinner?' — a concept app that answers the eternal, existential question asked by kids (and hangry adults) everywhere: 'What's for dinner?' We'll vibe code it end-to-end with Cline and Oracle Code Assist, wire in AI, ship a Plotly Dash UI, and validate everything. No mystery magic — just step-by-step natural language, strict standards, and production discipline.
 
 On-screen:
 - Montage: VS Code, Cline panel, terminal, browser with a recipe UI, checklist ticking off.
@@ -16,7 +16,7 @@ On-screen:
 
 00:25 - Host intro + credibility
 Narration:
-Hey everyone, I’m Barjinder Singh from Sydney, Australia. I’m a Cloud Architect with Oracle and I write at fluffyclouds.blog. In this session, I’ll show you how I plan and ship a small but real GenAI app using Cline and Oracle Code Assist as the AI provider, with strong guardrails: Memory Bank, .clinerules, local MCP servers, and a strict Plan vs Act workflow.
+Hey everyone, I’m Barjinder Singh from Sydney, Australia. I’m a Master Principal Cloud Architect with Oracle and I write at fluffyclouds.blog. In this session, I’ll show you how I plan and ship a small but real GenAI app using Cline and Oracle Code Assist as the AI provider, with strong guardrails: Memory Bank, .clinerules, local MCP servers, and a strict Plan vs Act workflow.
 
 On-screen lower-third:
 Barjinder Singh — Oracle Cloud Architect — Sydney, Australia
