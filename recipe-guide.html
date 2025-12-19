@@ -1433,9 +1433,10 @@ docker login region-key.ocir.io -u "tenancy-namespace/username"</pre>
         <p><strong>Copy and paste this prompt into Cline:</strong></p>
         <ul>
           <li>Please expose my Dash service using an Oracle OCI Load Balancer.</li>
-          <li>The name of the load balancer should be: <code><your-desired-lb-name></code></li>
+          <li>The name of the load balancer should be read from workshop-config.yaml</li>
+          <li>Prompt the user to provide dash container IP for backend http configuration. If the information is missing in workshop-config.yaml</li>
           <li>Use network type, subnets, and all backend configuration from workshop-config.yaml only—never prompt me for ports, subnets, or IPs.</li>
-          <li>Set health check and backend mapping to follow config and automation rules; I only provide the display name and whether this LB is public (default is public).</li>
+          <li>Set health check and backend mapping to follow config and automation rules</li>
           <li>After setup, output the public hostname/IP and a command to verify Dash is accessible.</li>
           <li>All tech mapping/CLI tasks are automated behind the config and memory bank.</li>
         </ul>
@@ -1497,7 +1498,8 @@ curl -sI "http://<lb-public-host>/" | head -n 1</pre>
         <ul>
           <li>Please expose my recipe API using Oracle API Gateway.</li>
           <li>Use all route/back-end/host details only from workshop-config.yaml and the Memory Bank—never prompt for IP, port, container, or file names.</li>
-          <li>The API is a normal FastAPI server running on an Oracle Linux VM.</li>
+          <li>Prompt the user for backend route url if details are not available in workshop-config.yaml</li>
+          <li>The API is a FastAPI server running on an Oracle Linux VM.</li>
           <li>Only ask for the API Gateway display name and type (default is PUBLIC).</li>
           <li>After creation, output the public API Gateway endpoint and a sample curl to test /api/v1/recipe.</li>
           <li>Network, backend mapping, and all CLI commands should be config-driven and automated; users provide only high-level guidance.</li>
