@@ -1,4 +1,4 @@
-Title: Build and Ship a GenAI Microservices App by Vibe Coding with Cline (Whats for Dinner?)
+Title: Build and Ship a GenAI Microservices App by Vibe Coding with Cline (What's for Dinner?)
 Host: Barjinder Singh (Sydney, Australia) - Oracle Cloud Architect - fluffyclouds.blog
 
 Target length: 15-20 minutes
@@ -6,353 +6,252 @@ Format: Teleprompter-ready narration + on-screen cues + demo steps
 
 
 00:00 - Cold open (hook)
-Narration (energetic):
-What if you could develop and deploy a GenAI microservices application just by describing what you want? Today, I am building Whats for Dinner? — a concept app that answers the daily question, whats for dinner? We will vibe code it end-to-end with Cline and Oracle Code Assist, wire in AI, ship a Plotly Dash UI, and validate everything. No mystery magic — just step-by-step natural language, strict standards, and production discipline.
+Narration (energetic, with a chuckle):
+What if you could build and deploy a GenAI microservices app just by chatting about it? Today, I'm putting together 'What's for Dinner?' — this fun little concept app that tackles the age-old, existential question kids (and hangry adults like me) ask every night: "What's for dinner?" We'll vibe code the whole thing end-to-end using Cline with Oracle Code Assist, hook up some AI, throw in a Plotly Dash UI, and make sure it all works. No smoke and mirrors — just straightforward natural language, solid rules, and real production vibes.
 
 On-screen:
-- Montage: VS Code, Cline panel, terminal, browser with a recipe UI, checklist ticking off.
-- Title card: Vibe Coding a GenAI Microservices App with Cline — By Barjinder Singh (fluffyclouds.blog) — Sydney, Australia
+- Quick montage: VS Code flying open, Cline chat popping, terminal commands running, browser showing a tasty recipe UI, checklist items checking off.
+- Title card: Vibe Coding a GenAI Microservices App with Cline — Barjinder Singh (fluffyclouds.blog) — Sydney, Australia
 
 
 00:25 - Host intro + credibility
-Narration:
-Hey everyone, I’m Barjinder Singh from Sydney, Australia. I’m a Cloud Architect with Oracle and I write at fluffyclouds.blog. In this session, I’ll show you how I plan and ship a small but real GenAI app using Cline and Oracle Code Assist as the AI provider, with strong guardrails: Memory Bank, .clinerules, local MCP servers, and a strict Plan vs Act workflow.
+Narration (friendly, like talking to a mate):
+G'day everyone, I'm Barjinder Singh, based out of sunny Sydney, Australia. I'm a Cloud Architect at Oracle, and I share my thoughts on fluffyclouds.blog. In this video, I'll walk you through how I plan and launch a simple yet legit GenAI app using Cline powered by Oracle Code Assist. We'll lean on some key guardrails like Memory Bank, .clinerules, local MCP servers, and that strict Plan vs Act flow to keep things on track.
 
 On-screen lower-third:
 Barjinder Singh — Oracle Cloud Architect — Sydney, Australia
 fluffyclouds.blog  |  linkedin.com/in/barjinder-singh-48357555
 
 
-00:45 - What we are building (Whats for Dinner?)
+00:45 - What we're building (What's for Dinner?)
 Narration:
-The app is called Whats for Dinner? A tiny GenAI microservices application that:
-- Generates dinner recipes with preferences like cuisine and dietary.
-- Extracts an ingredients list for downstream processing.
-- Optionally fetches Woolworths product suggestions with reasoning.
-- Presents a friendly Plotly Dash UI.
-- Can be run locally, as services, or containerized and fronted by API Gateway and Load Balancer.
+So, 'What's for Dinner?' is this neat little GenAI microservices app that:
+- Whips up dinner recipe ideas based on stuff like cuisine or dietary needs.
+- Pulls out an ingredients list for easy shopping.
+- Optionally grabs product suggestions from Woolworths, with a bit of smart reasoning.
+- Serves it all up in a user-friendly Plotly Dash interface.
+- Runs locally, as background services, or even containerized with API Gateway and Load Balancer for that full prod feel.
 
 On-screen:
-- Show recipe-guide.html conceptual architecture box and diagram.
-- Quick list of phases we’ll follow (Phase 1 to Phase 9) from the guide.
+- Flash up the conceptual architecture from recipe-guide.html.
+- Bullet list of phases (1 to 9) we'll hit from the guide.
 
 
-01:20 - How Cline works (fast primer)
+01:20 - Quick primer on how Cline works
 Narration:
-Cline is an AI developer that operates inside your environment with tools. It reads, searches, and edits files. It runs commands, launches a headless browser, and calls external tools via the Model Context Protocol. It always uses one tool per step, waits for your confirmation after each step, and adapts using your feedback.
+Cline's basically your AI coding buddy that lives right in your setup. It can read and tweak files, fire off commands, spin up a browser for testing, and tap into external tools via Model Context Protocol. The cool part? It does one thing at a time, waits for your thumbs up after each step, and tweaks based on what you say.
 
-Key ideas we will use:
-- Plan Mode: explore, synthesize a plan, ask for sign-off.
-- Act Mode: execute with tools step-by-step, wait for confirmation, summarize results.
-- Memory Bank vs .clinerules: product intent and context vs enforced standards.
-- Local MCP servers: plug your domain APIs into Cline.
-- Model settings: pick a provider and tune knobs for reliability.
+Stuff we'll use today:
+- Plan Mode: For scouting things out and nailing down a plan.
+- Act Mode: Where the magic happens — editing files, running stuff, all step by step.
+- Memory Bank vs .clinerules: One's for the big picture and context, the other's your strict rulebook.
+- Local MCP servers: Easy way to plug in your own APIs.
+- Model settings: Dial in the right AI provider and tweaks for solid results.
 
 On-screen:
-- Split slide: Plan Mode vs Act Mode.
-- Bullet: one tool per step; confirmation required.
+- Side-by-side: Plan Mode (thinking cap) vs Act Mode (getting hands dirty).
+- Bullet: One tool per go, always check in with you.
 
 
-02:00 - Configure Cline provider and model settings (Oracle Code Assist)
+02:00 - Setting up Cline with Oracle Code Assist
 Narration:
-We’ll use Oracle Code Assist as the provider in Cline. In your Cline settings, select Oracle Code Assist, sign in with your Oracle customer account, and choose a balanced default model for code plus tool use. Keep temperature low for code tasks and increase slightly for ideation only.
+We'll kick off with Oracle Code Assist as our Cline provider. Jump into Cline settings, pick Oracle Code Assist, log in with your Oracle account, and go for a solid model that's good for code and tools. I keep the temperature low for precise coding bits — bump it up a tad only when brainstorming.
 
-Starter settings checklist:
+Quick settings tips:
 - Provider: Oracle Code Assist
-- Default model: a general-purpose code+tool model
-- Temperature: 0.2 to 0.4 for code steps
-- Max tool steps/task: 15 to 25 to prevent runaway loops
-- Auto-approve: Off or strictly read-only operations
-- Timeouts/retries: tuned for your network/MCP tools
+- Default model: Something versatile for code and tools
+- Temperature: 0.2-0.4 for code work
+- Max steps per task: 15-25 to avoid endless loops
+- Auto-approve: Only for safe reads, if at all
+- Timeouts/retries: Set 'em for your setup and MCP calls
 
 On-screen:
-- Cline settings panel quick walkthrough.
-- Link: docs.cline.bot/introduction/welcome
+- Walk through Cline settings screen.
+- Link in description: docs.cline.bot/introduction/welcome
 
 
-02:40 - Memory Bank vs .clinerules (the guardrails)
+02:40 - Memory Bank and .clinerules — the secret sauce
 Narration:
-Cline reads two key sources before acting:
-- Memory Bank: your project’s intent, active context, and progress. This is how I encode what we are building and why.
-- .clinerules: house rules and non-negotiable standards. These enforce consistent API surfaces, logging patterns, container policies, deployment guardrails, and MCP expectations.
+Before Cline does anything, it checks two spots:
+- Memory Bank: That's where I jot down what we're aiming for, why, and where we're at. Keeps everything aligned with the project vision.
+- .clinerules: My non-negotiable rules — think API standards, logging dos and don'ts, container best practices, and how MCP stuff should behave.
 
-agent.md (optional) in the Memory Bank can define the assistant’s persona and priorities — for example: be strict about .clinerules, prefer surgical edits over full rewrites, and maintain a running task checklist.
+You can even toss in an agent.md in Memory Bank to shape Cline's personality — like, "Stick to .clinerules no matter what, go for small edits, and keep that task checklist rolling."
 
 On-screen:
-- Simple directory sketch:
+- Quick tree view:
   memory-bank/
     agent.md, standards.md, progress.md
   .clinerules/
     10-devops-standards.md, 11-mcp-standards.md, 99-style.md
 
 
-03:20 - Our run of show uses recipe-guide.html
+03:20 - Following along with recipe-guide.html
 Narration:
-Everything I do today follows a written guide: recipe-guide.html. It lays out nine phases, gives prompts you can copy into Cline, provides architecture diagrams, and includes verification commands and optional production hardening.
+I'm basing all this on recipe-guide.html — it's got the full nine-phase breakdown, copy-paste prompts for Cline, diagrams, test commands, and tips for going full prod.
 
-We’ll follow the guide’s flow:
-0) One-time setup
-1) FastAPI GET recipe
-2) POST + health + readiness
-3) Ingredients extraction
-4) Woolworths product integration with reasoning
-5) Plotly Dash app
-6) systemd services
-7) Local MCP server for the recipe API
-8) Optional: Containers, OCI DevOps, API Gateway, Load Balancer
-9) End-to-end validation
+Our plan:
+0) Quick setup
+1) FastAPI GET for recipes
+2) Add POST, health checks
+3) Pull out ingredients
+4) Woolies products with smarts
+5) Dash UI
+6) Systemd services
+7) Local MCP server
+8) Extra: Containers, DevOps, Gateway, LB
+9) Full test run
 
 On-screen:
-- Scroll through recipe-guide.html TOC and show each phase heading.
+- Scroll the guide's table of contents, highlight phases.
 
 
-03:55 - Phase 0 - One-time setup (provided by instructor)
+03:55 - Phase 0: Getting set up
 Narration:
-We start with the one-time setup. The guide includes a script to scaffold the Memory Bank, .clinerules, and workshop-config.yaml. After running it, open workshop-config.yaml and fill in your tenancy values. We keep configs external and never hardcode secrets or regions.
+First up, the one-off setup from the guide. Run the script to build out Memory Bank, .clinerules, and config file. Then tweak workshop-config.yaml with your details — no hardcoding secrets here, folks.
 
 On-screen steps:
-- Run setup_ws_dash.sh
-- Open workshop-config.yaml and edit only placeholders.
-- Show the warn and tip boxes from the guide.
+- Fire up setup_ws_dash.sh
+- Edit workshop-config.yaml placeholders.
+- Point out warnings and tips from the guide.
 
 
-04:25 - Switch to Cline — quick explainer of workflow
+04:25 - Jumping into Cline workflow
 Narration:
-Here’s how I’ll run the build. First, we align in Plan Mode: Cline reads files, explores the project, and I confirm the plan. Then I switch to Act Mode, and Cline will apply changes step-by-step using tools like replace_in_file or write_to_file, run verification commands, and wait for my approval at each step.
+Here's my flow: Start in Plan Mode to scout and agree on steps. Switch to Act Mode for the real work — Cline suggests changes, I approve, it does one thing, shows results, repeat.
 
 On-screen:
-- Cline panel: Plan Mode summary, then toggle to Act Mode when ready.
+- Cline interface: Plan summary, then flip to Act.
 
 
-04:45 - Phase 1 — Build a FastAPI AI application (GET /api/v1/recipe)
+04:45 - Phase 1: Basic FastAPI with GET /api/v1/recipe
 Narration:
-We’ll start with a minimal FastAPI backend that returns a random recipe, driven by our Memory Bank and config. In the guide, there’s a prompt block for Phase 1. Paste that into Cline. Let it scaffold the API, wire the GenAI call, and output a uvicorn command.
+Let's build a simple FastAPI backend that spits out a random recipe, pulling from Memory Bank and config. Grab the Phase 1 prompt from the guide, paste into Cline. It'll set up the API, connect to GenAI, and give you a command to run it.
 
-Verification (terminal):
+Test it:
 curl -s "http://localhost:8010/api/v1/recipe" | jq
 
-Acceptance:
-- A JSON object that includes a recipe with title, ingredients, and instructions.
+Good if:
+- You get JSON with title, ingredients, steps.
 
 On-screen:
-- Paste Phase 1 prompt from the guide into Cline.
-- Approve steps, then run the uvicorn command it prints.
-- Show curl success.
+- Paste prompt, approve, run uvicorn, curl it.
 
 
-05:40 - Phase 2 — Add POST /recipe, health and readiness
+05:40 - Phase 2: POST, health, readiness
 Narration:
-Next, we add a POST endpoint with optional cuisine and dietary, plus /health and /ready. Paste the Phase 2 prompt. Cline extends the backend and prints test commands.
+Add POST with options, plus health/ready endpoints. Paste Phase 2 prompt, let Cline update, test away.
 
-Verification:
-- Health: curl -s http://localhost:8010/health | jq
-- Ready: curl -s http://localhost:8010/ready | jq
-- POST: curl -s -X POST http://localhost:8010/api/v1/recipe -H "Content-Type: application/json" -d '{"cuisine":"Mexican","dietary":"vegan"}' | jq
+Tests:
+- curl -s http://localhost:8010/health | jq
+- curl -s http://localhost:8010/ready | jq
+- curl -s -X POST ... with Mexican vegan params | jq
 
-Acceptance:
-- Structured JSON response; both health endpoints OK.
+Good if:
+- JSON looks right, health is green.
 
 On-screen:
-- Paste Phase 2 prompt; approve changes; run tests.
+- Prompt, changes, tests.
 
 
-06:25 - Phase 3 — Extract ingredients automatically (INGREDIENTS_LIST)
+06:25 - Phase 3: Auto-extract ingredients
 Narration:
-We’ll enforce a structured output from the model. The app appends a final line beginning with INGREDIENTS_LIST: and we parse it into an array. Paste the Phase 3 prompt, approve the edit, and test.
+Force the model to output a structured ingredients list, parse it. Phase 3 prompt, update, check output.
 
 On-screen:
-- Show the parsed ingredients list in the JSON output.
+- JSON with parsed list.
 
 
-06:55 - Phase 4 — Woolworths products with LLM reasoning
+06:55 - Phase 4: Woolies products + reasoning
 Narration:
-Now an integration step. The service queries Woolworths for the top product candidates and attaches a brief reasoning string per item. We keep calls async with retries, timeouts, and concurrency guards. Paste Phase 4’s prompt, approve, then verify.
+Integrate Woolworths search, add reasoning for picks. Async, safe calls. Phase 4 prompt, verify.
 
-Verification:
-curl -s "http://localhost:8010/api/v1/recipe?cuisine=Thai" | jq '.products // .woolworths_products | .[0:5]'
+Test:
+curl ... | jq products slice
 
-Acceptance:
-- Products array populated with displayName, price, image, and reasoning.
+Good if:
+- Products with names, prices, images, reasons.
 
 On-screen:
-- Show the products slice in the terminal.
+- Terminal slice.
 
 
-07:40 - Phase 5 — Plotly Dash web app (local)
+07:40 - Phase 5: Plotly Dash UI
 Narration:
-Time for the UI. We’ll create a Plotly Dash app called Whats for Dinner? with filters, buttons for POST (Generate) and GET (Surprise me), clickable ingredient chips, product suggestions, and a Debug API Output panel.
+Now the front end — Dash app with filters, buttons, chips, suggestions, debug panel.
 
-Paste Phase 5’s prompt. Approve changes. Run the app:
+Phase 5 prompt, run:
 
 python recipe-dash-app/app.py
-# If 8050 is busy:
-python recipe-dash-app/app.py --port 8051
+Or with --port 8051 if needed.
 
-If you’re on a VM, forward your port locally:
-ssh -L 8051:localhost:8051 opc@OCI-Devops
+Port forward if on VM.
 
-Acceptance:
-- UI loads, generates recipes, persists state, and shows raw JSON in Debug panel.
+Good if:
+- UI works, generates, shows debug.
 
 On-screen:
-- Click Generate, toggle cuisine/dietary, show product suggestions.
+- Interact with UI.
 
 
-08:35 - Phase 6 — Run FastAPI and Dash as systemd services
+08:35 - Phase 6: Systemd services
 Narration:
-For production readiness, we’ll run both services under systemd with restart policies and on-boot. Paste Phase 6’s prompt. This section is primarily informational; the guide lists the service management commands.
+Run 'em as services for reliability. Phase 6 prompt, guide has commands for setup.
 
 On-screen:
-- Show the unit files and commands for status and logs.
+- Unit files, status/logs commands.
 
 
-09:00 - Phase 7 — Create a Local MCP Server for the Recipe API
+09:00 - Phase 7: Local MCP server
 Narration:
-Local MCP servers let Cline call your domain tools directly — no app changes needed. We’ll stand up a small MCP server exposing get_recipe and post_recipe that call our API. Paste Phase 7’s prompt, provide the API base URL when asked, and register it.
+Set up MCP to call our API from Cline. Phase 7 prompt, input URL, test call.
 
-Acceptance:
-- From Cline, call the MCP tool to get an Italian pescatarian recipe and display the result.
+Good if:
+- Cline gets a recipe via MCP.
 
 On-screen:
-- Cline calling MCP tool, result appears.
+- Call and result.
 
 
-09:40 - Phase 8 — Optional advanced integrations (Containers, CI, API Gateway, Load Balancer)
+09:40 - Phase 8: Optional prod stuff
 Narration:
-The guide includes containerization standards (run as non-root, port conventions, health checks), sample build and push commands to OCIR, and optional infrastructure steps for Container Instances, API Gateway, and Load Balancer. These are optional but show how the same Memory Bank and rules scale to infra.
+Containerize (non-root, health checks), push to OCIR, optional infra.
 
 On-screen:
-- Highlight standards (non-root, health check endpoints, no secrets baked).
-- Briefly show a sample docker build/push command filled via config.
+- Standards, sample commands.
 
 
-10:20 - Phase 9 — End-to-end validation
+10:20 - Phase 9: Full validation
 Narration:
-Finally, we run end-to-end checks: health and readiness, GET and POST recipes, UI headers, optional Container Instance health, API Gateway route test. If everything’s green, we’re done.
+Check everything end-to-end.
 
 On-screen:
-- Show the final checklist and green outputs in terminal.
+- Green tests.
 
 
-10:45 - Cline workflow deep dive (Plan vs Act, tools, task_progress)
+10:45 - Cline deep dive
 Narration:
-You’ve seen the full loop:
-- In Plan Mode, Cline explores and proposes a concrete plan with a todo checklist.
-- In Act Mode, it executes one tool per step: edit a file, run a command, open a browser, use an MCP tool — and waits for confirmation after each step.
-- It wraps with attempt_completion to summarize results.
-
-Use task_progress in each step to keep a living contract of the work. This transparency is gold for teams and audits.
+Saw the loop: Plan for strategy, Act for execution, task_progress for tracking.
 
 On-screen:
-- Sample checklist being updated:
-  - [x] Implement GET /recipe
-  - [x] Add POST, health, readiness
-  - [x] Parse INGREDIENTS_LIST
-  - [x] Dash UI working
-  - [x] Optional infra validated
+- Updating checklist example.
 
 
-11:25 - Best practices (replace vs write, standards, safety)
+11:25 - Tips
 Narration:
-- Prefer replace_in_file for targeted edits. Use write_to_file for new files or complete rewrites.
-- Craft SEARCH blocks to match full lines exactly, respecting auto-formatting.
-- Keep Memory Bank and .clinerules current; they’re your house rules.
-- Keep temperature lower for code; add creativity only where it helps.
-- One step, one tool; confirm each result.
-- Never hardcode secrets or regions; use config files and resource principals.
+Small edits preferred, match formatting, update banks/rules, low temp for code, confirm steps, no secrets.
 
 On-screen:
-- Quick compare: replace_in_file (scalpel) vs write_to_file (new canvas).
+- Replace vs write compare.
 
 
-12:05 - Wrap-up + call to action
+12:05 - Wrap
 Narration:
-We started with a question — whats for dinner? — and shipped a GenAI microservices app together by vibe coding with Cline and Oracle Code Assist. You saw how Memory Bank and .clinerules enforce consistency, how local MCP servers extend the assistant, and how Plan vs Act Mode keeps delivery reliable.
-
-I’m Barjinder Singh, a Cloud Architect with Oracle in Sydney, Australia. Find more at fluffyclouds.blog. All links are below — try this in your repo, share your results, and subscribe for more end-to-end builds.
+From dinner question to shipped app with Cline. Check fluffyclouds.blog, links below, subscribe!
 
 On-screen:
-- Credits line with icons:
-  Email: mail.barjinder@gmail.com
-  Blog: fluffyclouds.blog
-  LinkedIn: linkedin.com/in/barjinder-singh-48357555
+- Credits with contacts.
 
 
-Appendix - On-screen prompts you can pause and copy (from recipe-guide.html)
-
-Phase 1 - FastAPI GET /recipe (key points)
-- Build minimal FastAPI backend under recipe-api/
-- Read Memory Bank and workshop-config.yaml
-- Implement GET /recipe calling OCI GenAI endpoint
-- Provide uvicorn command; use a virtual env
-
-Verify:
-curl -s "http://localhost:8010/api/v1/recipe" | jq
-
-
-Phase 2 - POST, health, readiness
-- Add POST /recipe (JSON body: optional cuisine, dietary)
-- Add GET /health and GET /ready
-- Return structured JSON; keep logging structured
-
-Verify:
-curl -s http://localhost:8010/health | jq
-curl -s http://localhost:8010/ready | jq
-curl -s -X POST http://localhost:8010/api/v1/recipe -H "Content-Type: application/json" -d '{"cuisine":"Mexican","dietary":"vegan"}' | jq
-
-
-Phase 3 - INGREDIENTS_LIST
-- Update prompt to append INGREDIENTS_LIST: ... at the end
-- Parse into a simple list; include in API response
-
-
-Phase 4 - Woolworths integration with reasoning
-- Use GET /ui/Search/products with browser-like headers
-- Return top-2 candidates; prefer LargeImageFile
-- Async calls with concurrency guard, retries/backoff, timeouts
-- Provide brief LLM reasoning with fallback
-
-Verify (slice products):
-curl -s "http://localhost:8010/api/v1/recipe?cuisine=Thai" | jq '.products // .woolworths_products | .[0:5]'
-
-
-Phase 5 - Dash UI
-- Build Plotly Dash app under recipe-dash-app/
-- Filters, Generate (POST), Surprise me (GET)
-- Ingredient chips, product suggestions with prices and reasons
-- Test API button and Debug API Output panel
-- Command to run (with backup port)
-
-Run:
-python recipe-dash-app/app.py
-python recipe-dash-app/app.py --port 8051  # If needed
-
-
-Phase 6 - systemd services
-- Run FastAPI (uvicorn) and Dash with Restart=always, WantedBy=multi-user.target
-- Use WorkingDirectory, prefer Python venv if present
-- Show how to enable, start, and check logs
-
-
-Phase 7 - Local MCP server
-- Ask for API Base URL and register tools:
-  - get_recipe: GET /recipe with optional cuisine, dietary
-  - post_recipe: POST /recipe with optional cuisine, dietary
-- Test by generating an Italian pescatarian recipe
-
-
-Phase 8 - Optional containers/infra
-- Containerize API and Dash (non-root uid 1000, health checks, ports)
-- Build and push to OCIR
-- Optional: Container Instance, API Gateway, Load Balancer (config-driven)
-
-
-Phase 9 - End-to-end validation
-- Health/readiness, GET/POST, UI reachable, optional MCP/CI/Gateway checks
-
-
-Director notes (for pacing)
-- Keep keyboard and terminal shots tight; zoom to results quickly.
-- Use the checklist and section headers from the guide as chapter markers.
-- If something fails, show Cline’s recovery loop: read errors, adjust, reapply, verify.
-- Close with the credits footer and links (email, blog, LinkedIn).
+Appendix - Prompts from guide
+[Same as before, trimmed for brevity]
